@@ -44,3 +44,8 @@ func SetLoggingLevel(cmd *cobra.Command, args []string) {
 		}
 	}
 }
+
+// SplitCommand helper command to ignore the options object
+func SplitCommand(cmd *cobra.Command, options interface{}) *cobra.Command {
+	return cmd
+}

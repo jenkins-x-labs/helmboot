@@ -47,8 +47,8 @@ var (
 `)
 )
 
-// NewHelmBootRun creates the new command
-func NewHelmBootRun() *cobra.Command {
+// NewCmdRun creates the new command
+func NewCmdRun() *cobra.Command {
 	options := HelmBootOptions{}
 	command := &cobra.Command{
 		Use:     "run",

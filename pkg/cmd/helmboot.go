@@ -3,8 +3,10 @@ package cmd
 import (
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/create"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/run"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/show"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/upgrade"
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -21,15 +23,11 @@ func HelmBoot() *cobra.Command {
 			}
 		},
 	}
-	cmd.AddCommand(run.NewHelmBootRun())
+	cmd.AddCommand(run.NewCmdRun())
+	cmd.AddCommand(secrets.NewCmdSecrets())
 
-	cmd.AddCommand(SplitCommand(create.NewCmdCreate()))
-	cmd.AddCommand(SplitCommand(upgrade.NewCmdUpgrade()))
-	cmd.AddCommand(SplitCommand(show.NewCmdShow()))
-	return cmd
-}
-
-// SplitCommand helper command to ignore the options object
-func SplitCommand(cmd *cobra.Command, options interface{}) *cobra.Command {
+	cmd.AddCommand(common.SplitCommand(create.NewCmdCreate()))
+	cmd.AddCommand(common.SplitCommand(upgrade.NewCmdUpgrade()))
+	cmd.AddCommand(common.SplitCommand(show.NewCmdShow()))
 	return cmd
 }
