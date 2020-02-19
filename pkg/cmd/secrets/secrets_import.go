@@ -7,7 +7,6 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
-	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
@@ -27,8 +26,8 @@ var (
 
 // ImportOptions the options for viewing running PRs
 type ImportOptions struct {
-	Factory jxfactory.Factory
-	File    string
+	factory.KindResolver
+	File string
 }
 
 // NewCmdImport creates a command object for the "create" command
@@ -47,6 +46,8 @@ func NewCmdImport() (*cobra.Command, *ImportOptions) {
 	}
 
 	cmd.Flags().StringVarP(&o.File, "file", "f", "", "the file to load the Secrets YAML from")
+
+	AddKindResolverFlags(cmd, &o.KindResolver)
 	return cmd, o
 }
 
@@ -63,12 +64,12 @@ func (o *ImportOptions) Run() error {
 	}
 
 	secretsYAML := string(data)
-	sm, err := factory.CreateSecretManager(o.Factory)
+	sm, err := o.CreateSecretManager()
 	if err != nil {
 		return err
 	}
 
-	cb := func(secretsYaml string) (string, error) {
+	cb := func(currentYaml string) (string, error) {
 		return secretsYAML, nil
 	}
 	err = sm.UpsertSecrets(cb, secretmgr.DefaultSecretsYaml)

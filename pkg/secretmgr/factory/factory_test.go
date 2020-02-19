@@ -7,6 +7,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/fake"
+	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,7 +52,8 @@ func TestLocalSecretManager(t *testing.T) {
 }
 
 func AssertSecretsManager(t *testing.T, kind string, f jxfactory.Factory) secretmgr.SecretManager {
-	sm, err := factory.NewSecretManager(kind, f)
+	requirments := config.NewRequirementsConfig()
+	sm, err := factory.NewSecretManager(kind, f, requirments)
 	require.NoError(t, err, "failed to create a SecretManager of kind %s", kind)
 	require.NotNil(t, sm, "SecretManager of kind %s", kind)
 

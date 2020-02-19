@@ -3,6 +3,10 @@ package secretmgr
 const (
 	// KindLocal for using a local Secret in Kubernetes
 	KindLocal = "local"
+
+	// KindGoogleSecretManager for using Google Secret Manager
+	KindGoogleSecretManager = "gsm"
+
 	// KindFake for a fake secret manager
 	KindFake = "fake"
 
@@ -24,4 +28,9 @@ const (
     token: 
     email:
 `
+)
+
+var (
+	// KindValues the kind of secret managers we support
+	KindValues = []string{KindGoogleSecretManager, KindLocal}
 )

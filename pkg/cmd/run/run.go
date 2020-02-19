@@ -131,7 +131,7 @@ func (o *HelmBootOptions) RunBootJob() error {
 			Name: "helm",
 			Args: []string{"uninstall", "jx-boot"},
 		}
-		_, err = c.Run()
+		_, err = c.RunWithoutRetry()
 		if err != nil {
 			return errors.Wrapf(err, "failed to remove old jx-boot chart")
 		}
@@ -144,7 +144,7 @@ func (o *HelmBootOptions) RunBootJob() error {
 
 	log.Logger().Infof("running the command:\n\n%s\n\n", util.ColorInfo(commandLine))
 
-	_, err = c.Run()
+	_, err = c.RunWithoutRetry()
 	if err != nil {
 		return errors.Wrapf(err, "failed to run command %s", commandLine)
 	}
@@ -188,7 +188,7 @@ func (o *HelmBootOptions) hasHelmRelease(releaseName string) (bool, error) {
 		Name: "helm",
 		Args: []string{"list", "--short"},
 	}
-	text, err := c.Run()
+	text, err := c.RunWithoutRetry()
 	if err != nil {
 		return false, errors.Wrap(err, "failed to run: helm list")
 	}
