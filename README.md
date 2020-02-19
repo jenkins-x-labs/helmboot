@@ -1,5 +1,9 @@
 # helmboot
 
+[![Documentation](https://godoc.org/github.com/jenkins-x-labs/helmboot?status.svg)](http://godoc.org/github.com/jenkins-x-labs/helmboot)
+[![Go Report Card](https://goreportcard.com/badge/github.com/jenkins-x-labs/helmboot)](https://goreportcard.com/report/github.com/jenkins-x-labs/helmboot)
+
+
 Helmboot is a small command line tool for System Administrators install / upgrade either [Jenkins](https://jenkins.io/) and / or [Jenkins X](https://jenkins-x.io/) via GitOps and immutable infrastructure.
 
 Helmboot is based on [helm 3.x](https://helm.sh/) and [helmfile](https://github.com/roboll/helmfile) under the covers.
@@ -56,7 +60,7 @@ If your cluster is using GitOps the command will clone the development git repos
 
 If your cluster is not using GitOps then a new git repository will be created.
 
-### Upgrading your cluster
+### Upgrading your cluster
 
 Once you have the git repository for the upgrade you need to run the boot Job in a clean empty cluster.
 
