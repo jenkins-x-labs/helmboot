@@ -38,7 +38,8 @@ func TestCreate(t *testing.T) {
 		co.BatchMode = true
 		co.Gitter = fakegit.NewGitFakeClone()
 		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan"}
-		co.Args = append(args, tc.Args...)
+		args = append(args, tc.Args...)
+		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
 		co.Jenkins = tc.Jenkins
 
