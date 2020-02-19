@@ -27,22 +27,31 @@ Now run the `helmboot create` command:
 helmboot create
 ```
 
+If you want to manage Jenkins servers via GitOps and the [Jenkins Operator](https://jenkinsci.github.io/kubernetes-operator/)  then use:
+
+``` 
+helmboot create --jenkins
+```
+
 This will create a new git repository for your installation.
 
-Once that is done you need to run the install Job
+Once that is done you need to run the boot Job
+
+### Setting up Secrets
+
+We don't yet have a nice `helmboot`  CLI option to let you populate secrets.
+
+Until then please follow the [gcloud setup instructions](https://github.com/jenkins-x-labs/jenkins-x-installer#google-secrets-manager-install---preferred-approach)
 
 ### Running the boot Job
 
-The `helmboot create` or `helmboot upgrade` command should list the command to run the boot job.
-
-If not you can run the following (adding in your own values of `CLUSTER_NAME` and `GIT_URL`):
+Once you have created your git repository via `helmboot create` or `helmboot upgrade` you can run the boot `Job` via:
 
 ```
-helm install jx-boot \
-  --set boot.clusterName=$CLUSTER_NAME \
-  --set secrets.gsm.enabled=true \
-  --set boot.bootGitURL=$GIT_URL \
+helmboot run
 ```
+
+This will use helm to install the boot Job and tail the log of the pod so you can see the boot job run
 
 ## Upgrading a `jx install` or `jx boot` cluster on helm 2.x
 
