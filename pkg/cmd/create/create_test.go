@@ -2,11 +2,14 @@ package create_test
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/create"
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakegit"
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakejxfactory"
+	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,22 +17,73 @@ import (
 func TestCreate(t *testing.T) {
 	//t.Parallel()
 
-	_, co := create.NewCmdCreate()
-	co.BatchMode = true
-	co.Gitter = fakegit.NewGitFakeClone()
-	co.Args = []string{"--provider", "kubernetes", "--cluster", "mycluster", "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan"}
-	co.JXFactory = fakejxfactory.NewFakeFactory()
+	type testCase struct {
+		Name    string
+		Args    []string
+		Jenkins bool
+	}
+	testCases := []testCase{
+		{
+			Name: "defaultcluster",
+		},
+		{
+			Name:    "jenkinscluster",
+			Jenkins: true,
+		},
+	}
 
-	err := co.Run()
-	require.NoError(t, err, "failed to create repository")
+	for _, tc := range testCases {
+		t.Logf("running test: %s", tc.Name)
+		_, co := create.NewCmdCreate()
+		co.BatchMode = true
+		co.Gitter = fakegit.NewGitFakeClone()
+		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan"}
+		co.Args = append(args, tc.Args...)
+		co.JXFactory = fakejxfactory.NewFakeFactory()
+		co.Jenkins = tc.Jenkins
 
-	// now lets assert we created a new repository
-	ctx := context.Background()
-	fullName := "jstrachan/environment-mycluster-dev"
-	repo, _, err := co.EnvFactory.ScmClient.Repositories.Find(ctx, fullName)
-	require.NoError(t, err, "failed to find repository %s", fullName)
-	assert.NotNil(t, repo, "nil repository %s", fullName)
-	assert.Equal(t, fullName, repo.FullName, "repo.FullName")
-	assert.Equal(t, "environment-mycluster-dev", repo.Name, "repo.FullName")
+		err := co.Run()
+		require.NoError(t, err, "failed to create repository for test %s", tc.Name)
+
+		// now lets assert we created a new repository
+		ctx := context.Background()
+		repoName := fmt.Sprintf("environment-%s-dev", tc.Name)
+		fullName := fmt.Sprintf("jstrachan/%s", repoName)
+
+		repo, _, err := co.EnvFactory.ScmClient.Repositories.Find(ctx, fullName)
+		require.NoError(t, err, "failed to find repository %s", fullName)
+		assert.NotNil(t, repo, "nil repository %s", fullName)
+		assert.Equal(t, fullName, repo.FullName, "repo.FullName for %s", tc.Name)
+		assert.Equal(t, repoName, repo.Name, "repo.FullName for %s", tc.Name)
+
+		// TODO verify apps file has jenkins added
+		t.Logf("test %s created dir %s\n", tc.Name, co.OutDir)
+
+		apps, appFileName, err := config.LoadAppConfig(co.OutDir)
+		require.NoError(t, err, "failed to load the apps configuration in dir %s for test %s", co.OutDir, tc.Name)
+		appMessage := fmt.Sprintf("test %s for file %s", tc.Name, appFileName)
+
+		if tc.Name == "jenkinscluster" {
+			// lets verify we have the jenkins operator installed
+			AssertHasApp(t, apps, "jenkins-operator/jenkins-operator", appMessage)
+		} else {
+			AssertHasApp(t, apps, "jenkins-x/lighthouse", appMessage)
+		}
+	}
+}
+
+func AssertHasApp(t *testing.T, appConfig *config.AppConfig, appName string, message string) {
+	found := false
+	names := []string{}
+	for _, app := range appConfig.Apps {
+		names = append(names, app.Name)
+		if app.Name == appName {
+			t.Logf("has app %s for %s", appName, message)
+			found = true
+		}
+	}
+	if !found {
+		assert.Fail(t, fmt.Sprintf("does not have the app %s for %s. Current apps are: %s", appName, message, strings.Join(names, ", ")))
+	}
 
 }

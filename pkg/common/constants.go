@@ -4,6 +4,9 @@ const (
 	// DefaultBootHelmfileRepository default git repo for boot with helmfile
 	DefaultBootHelmfileRepository = "https://github.com/jenkins-x/jenkins-x-boot-helmfile-config.git"
 
+	// DefaultJenkinsBootHelmfileRepository default git repo for boot with helmfile when using the Jenkins Operator to manage Jenkins
+	DefaultJenkinsBootHelmfileRepository = "https://github.com/jenkins-x-labs/jenkins-x-boot-config-jenkins.git"
+
 	// DefaultVersionsRef default version stream ref
 	DefaultVersionsRef = "master"
 

@@ -24,6 +24,7 @@ type EnvFactory struct {
 	BatchMode     bool
 	IOFileHandles *util.IOFileHandles
 	ScmClient     *scm.Client
+	OutDir        string
 }
 
 // AddFlags adds common CLI flags
@@ -35,6 +36,7 @@ func (o *EnvFactory) AddFlags(cmd *cobra.Command) {
 
 // CreateDevEnvGitRepository creates the dev environment git repository from the given directory
 func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
+	o.OutDir = dir
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to load requirements from %s", dir)

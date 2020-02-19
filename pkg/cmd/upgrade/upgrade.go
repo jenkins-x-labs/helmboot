@@ -148,6 +148,7 @@ func (o *UpgradeOptions) Run() error {
 	}
 
 	if o.gitRepositoryExisted {
+		o.OutDir = dir
 		if !o.NoCommit {
 			err = o.Gitter.CommitIfChanges(dir, "fix: helmboot upgrader\n\nmigrating resources across to the latest Jenkins X GitOps source code")
 			if err != nil {
