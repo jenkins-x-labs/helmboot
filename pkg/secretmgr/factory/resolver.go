@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
@@ -18,6 +19,10 @@ type KindResolver struct {
 	Factory jxfactory.Factory
 	Kind    string
 	Dir     string
+
+	// outputs which can be useful
+	DevEnvironment *v1.Environment
+	Requirements   *config.RequirementsConfig
 }
 
 // CreateSecretManager detects from the current cluster which kind of SecretManager to use and then creates it
@@ -30,6 +35,7 @@ func (r *KindResolver) CreateSecretManager() (secretmgr.SecretManager, error) {
 	if err != nil {
 		return nil, err
 	}
+	r.Requirements = requirements
 
 	if requirements == nil {
 		return nil, fmt.Errorf("failed to resolve the jx-requirements.yml from the file system or the 'dev' Environment in namespace %s", ns)
@@ -79,6 +85,10 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 	dev, err := kube.GetDevEnvironment(jxClient, ns)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, ns, errors.Wrap(err, "failed to find the 'dev' Environment resource")
+	}
+	r.DevEnvironment = dev
+	if r.Requirements != nil {
+		return r.Requirements, ns, nil
 	}
 	if dev != nil {
 		requirements, err := config.GetRequirementsConfigFromTeamSettings(&dev.Spec.TeamSettings)

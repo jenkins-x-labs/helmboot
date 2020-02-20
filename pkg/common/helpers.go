@@ -6,6 +6,7 @@ import (
 
 	"github.com/jenkins-x/jx/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/spf13/cobra"
 )
 
@@ -48,4 +49,16 @@ func SetLoggingLevel(cmd *cobra.Command, args []string) {
 // SplitCommand helper command to ignore the options object
 func SplitCommand(cmd *cobra.Command, options interface{}) *cobra.Command {
 	return cmd
+}
+
+// GetIOFileHandles lazily creates a file handles object if the input is nil
+func GetIOFileHandles(h *util.IOFileHandles) util.IOFileHandles {
+	if h == nil {
+		h = &util.IOFileHandles{
+			Err: os.Stderr,
+			In:  os.Stdin,
+			Out: os.Stdout,
+		}
+	}
+	return *h
 }

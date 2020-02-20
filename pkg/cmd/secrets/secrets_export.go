@@ -31,6 +31,7 @@ var (
 type ExportOptions struct {
 	factory.KindResolver
 	OutFile string
+	Console bool
 }
 
 // NewCmdExport creates a command object for the "create" command
@@ -49,6 +50,7 @@ func NewCmdExport() (*cobra.Command, *ExportOptions) {
 	}
 
 	cmd.Flags().StringVarP(&o.OutFile, "file", "f", "/tmp/secrets/helmboot/secrets.yaml", "the file to use to save the secrets to")
+	cmd.Flags().BoolVarP(&o.Console, "console", "c", false, "display the secrets on the console instead of a file")
 
 	AddKindResolverFlags(cmd, &o.KindResolver)
 	return cmd, o
@@ -63,13 +65,15 @@ func AddKindResolverFlags(cmd *cobra.Command, o *factory.KindResolver) {
 // Run implements the command
 func (o *ExportOptions) Run() error {
 	fileName := o.OutFile
-	if fileName == "" {
+	if fileName == "" && !o.Console {
 		return util.MissingOption("file")
 	}
-	dir := filepath.Dir(fileName)
-	err := os.MkdirAll(dir, util.DefaultFileWritePermissions)
-	if err != nil {
-		return errors.Wrapf(err, "failed to create parent directory %s", dir)
+	if !o.Console {
+		dir := filepath.Dir(fileName)
+		err := os.MkdirAll(dir, util.DefaultFileWritePermissions)
+		if err != nil {
+			return errors.Wrapf(err, "failed to create parent directory %s", dir)
+		}
 	}
 
 	sm, err := o.CreateSecretManager()
@@ -90,6 +94,10 @@ func (o *ExportOptions) Run() error {
 
 	log.Logger().Infof("loaded Secrets from: %s", util.ColorInfo(sm.String()))
 
+	if o.Console {
+		log.Logger().Infof("%s", util.ColorStatus(secretsYAML))
+		return nil
+	}
 	err = ioutil.WriteFile(fileName, []byte(secretsYAML), util.DefaultFileWritePermissions)
 	if err != nil {
 		return errors.Wrapf(err, "failed to save secrets file %s", fileName)

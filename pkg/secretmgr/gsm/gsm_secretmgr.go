@@ -42,7 +42,8 @@ func (f *GoogleSecretManager) UpsertSecrets(callback secretmgr.SecretCallback, d
 
 	secretYaml, err := f.getSecret()
 	if err != nil {
-		return err
+		// lets assume its the first version
+		log.Logger().Debugf("ignoring error %s", err.Error())
 	}
 
 	if secretYaml == "" {
@@ -75,7 +76,10 @@ func (f *GoogleSecretManager) getSecret() (string, error) {
 	log.Logger().Debugf("running gcloud %s", strings.Join(c.Args, " "))
 
 	text, err := c.RunWithoutRetry()
-	return text, err
+	if err != nil {
+		return "", err
+	}
+	return text, nil
 }
 
 func (f *GoogleSecretManager) secretExists() bool {

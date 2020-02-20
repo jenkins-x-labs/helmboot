@@ -39,19 +39,61 @@ Once that is done you need to run the boot Job
 
 ### Setting up Secrets
 
-We don't yet have a nice `helmboot`  CLI option to let you populate secrets.
+You need to specify a few secret values before you can boot up. 
 
-Until then please follow the [gcloud setup instructions](https://github.com/jenkins-x-labs/jenkins-x-installer#google-secrets-manager-install---preferred-approach)
+To populate the Secrets run:
+
+
+```
+helmboot secrets edit
+```                  
+
+This will prompt you to enter all the missing Secrets required.
+
+
+#### Importing and exporting
+
+You can export the current secrets to the file system via
+
+```
+helmboot secrets export -f /tmp/mysecrets.yaml
+```                  
+
+Or to view them on the terminal...
+
+```
+helmboot secrets export -c
+```                  
+
+If you have an existing secrets.yaml file on the file system that looks kinda like this (with the actual values included)...
+
+```yaml
+secrets:
+  adminUser:
+    username: 
+    password: 
+  hmacToken: 
+  pipelineUser:
+    username: 
+    token: 
+    email:  
+```
+
+Then you can import this YAML file via:
+
+```
+helmboot secrets import -f /tmp/mysecrets.yaml
+```                  
 
 ### Running the boot Job
 
-Once you have created your git repository via `helmboot create` or `helmboot upgrade` you can run the boot `Job` via:
+Once you have created your git repository via `helmboot create` or `helmboot upgrade` and populated the secrets as shown above you can run the boot `Job` via:
 
 ```
 helmboot run
 ```
 
-This will use helm to install the boot Job and tail the log of the pod so you can see the boot job run
+This will use helm to install the boot Job and tail the log of the pod so you can see the boot job run. It looks like the boot process is running locally on your laptop but really it is all running inside a Pod inside Kubernetes.
 
 ## Upgrading a `jx install` or `jx boot` cluster on helm 2.x
 
