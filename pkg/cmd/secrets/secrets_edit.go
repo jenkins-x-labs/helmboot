@@ -138,6 +138,7 @@ type EditOptions struct {
 	factory.KindResolver
 	SchemaFile    string
 	IOFileHandles *util.IOFileHandles
+	AskExisting   bool
 	BatchMode     bool
 	Verbose       bool
 }
@@ -158,6 +159,7 @@ func NewCmdEdit() (*cobra.Command, *EditOptions) {
 	}
 
 	cmd.Flags().StringVarP(&o.SchemaFile, "schema-file", "s", "secrets/secrets.schema.json", "the JSON schema file to use to validate the secrets")
+	cmd.Flags().BoolVarP(&o.AskExisting, "all", "a", false, "if enabled ask for confirmation on all secret values. Otherwise just prompt for missing values only")
 	cmd.Flags().BoolVarP(&o.Verbose, "verbose", "v", false, "enables verbose logging")
 	cmd.Flags().BoolVarP(&o.BatchMode, "batch-mode", "b", false, "Runs in batch mode without prompting for user input")
 
@@ -215,8 +217,12 @@ func (o *EditOptions) editSecretsYaml(secretsYaml string) (string, error) {
 		}
 	}
 	existing := map[string]interface{}{}
-	for k, v := range secretClient.Data {
-		existing[k] = v
+	existingSecrets := secretClient.Data["secrets"]
+	existingSecretsMap, ok := existingSecrets.(map[string]interface{})
+	if ok {
+		for k, v := range existingSecretsMap {
+			existing[k] = v
+		}
 	}
 	nonPasswordYAML, err := o.populateValues(secretClient, existing)
 	if err != nil {
@@ -299,10 +305,8 @@ func (o *EditOptions) populateValues(secretURLClient secreturl.Client, existing 
 	vaultScheme := "vault:"
 	vaultBasePath := "/secrets"
 
-	askExisting := false
-
 	handles := common.GetIOFileHandles(o.IOFileHandles)
-	values, err := apps.GenerateQuestions(schema, o.BatchMode, askExisting, vaultBasePath, secretURLClient, existing, vaultScheme, handles)
+	values, err := apps.GenerateQuestions(schema, o.BatchMode, o.AskExisting, vaultBasePath, secretURLClient, existing, vaultScheme, handles)
 	if err != nil {
 		return "", errors.Wrapf(err, "asking questions for schema")
 	}
