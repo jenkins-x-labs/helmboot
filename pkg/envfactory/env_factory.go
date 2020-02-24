@@ -100,7 +100,7 @@ func (o *EnvFactory) PrintBootJobInstructions(requirements *config.RequirementsC
 
 	info := util.ColorInfo
 	log.Logger().Infof("%s", info("helmboot secrets edit"))
-	log.Logger().Infof("%s", info("helmboot run"))
+	log.Logger().Infof("%s", info(fmt.Sprintf("helmboot run --git-url %s", link)))
 	return nil
 }
 

@@ -248,7 +248,7 @@ func (o *HelmBootOptions) findRequirementsAndGitURL() (*config.RequirementsConfi
 		// lets try find the git URL from
 		gitURL, err = o.findGitURLFromDir()
 		if err != nil {
-			return requirements, gitURL, err
+			return requirements, gitURL, errors.Wrapf(err, "your cluster has not been booted before and you are not inside a git clone of your dev environment repository so you need to pass in the URL of the git repository as --git-url")
 		}
 	}
 	return requirements, gitURL, nil
