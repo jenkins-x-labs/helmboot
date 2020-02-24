@@ -99,17 +99,8 @@ func (o *EnvFactory) PrintBootJobInstructions(requirements *config.RequirementsC
 	log.Logger().Info("\nto boot your cluster run the following commands:\n\n")
 
 	info := util.ColorInfo
-	log.Logger().Infof("%s", info("helm install jenkins-x/jx-boot \\"))
-
-	clusterName := requirements.Cluster.ClusterName
-	if clusterName != "" {
-		log.Logger().Infof("%s", info(fmt.Sprintf("  --set boot.clusterName=%s \\", clusterName)))
-	}
-
-	// TODO depends on the kind of secrets being used
-	log.Logger().Infof("%s", info("  --set secrets.gsm.enabled=true \\"))
-
-	log.Logger().Infof("%s", info(fmt.Sprintf("  --set boot.bootGitURL=%s\n\n", link)))
+	log.Logger().Infof("%s", info("helmboot secrets edit"))
+	log.Logger().Infof("%s", info("helmboot run"))
 	return nil
 }
 
