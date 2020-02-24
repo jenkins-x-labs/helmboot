@@ -6,7 +6,7 @@ require (
 	github.com/google/go-cmp v0.3.0
 	github.com/google/uuid v1.1.1
 	github.com/heptio/sonobuoy v0.16.0
-	github.com/jenkins-x/go-scm v1.5.75
+	github.com/jenkins-x/go-scm v1.5.76
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
 	github.com/jenkins-x/jx v0.0.0-20200205060623-f7c50978003a
 	github.com/jetstack/cert-manager v0.5.2

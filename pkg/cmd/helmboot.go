@@ -5,6 +5,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/run"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/show"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/step"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/upgrade"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x/jx/pkg/log"
@@ -25,6 +26,7 @@ func HelmBoot() *cobra.Command {
 	}
 	cmd.AddCommand(run.NewCmdRun())
 	cmd.AddCommand(secrets.NewCmdSecrets())
+	cmd.AddCommand(step.NewCmdStep())
 
 	cmd.AddCommand(common.SplitCommand(create.NewCmdCreate()))
 	cmd.AddCommand(common.SplitCommand(upgrade.NewCmdUpgrade()))
