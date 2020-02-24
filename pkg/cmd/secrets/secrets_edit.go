@@ -221,9 +221,13 @@ func (o *EditOptions) editSecretsYaml(secretsYaml string) (string, error) {
 	existingSecretsMap, ok := existingSecrets.(map[string]interface{})
 	if ok {
 		for k, v := range existingSecretsMap {
-			existing[k] = v
+			if v != nil && v != "" {
+				existing[k] = v
+			}
 		}
 	}
+	removeMapEmptyValues(existing)
+
 	nonPasswordYAML, err := o.populateValues(secretClient, existing)
 	if err != nil {
 		return secretsYaml, err
@@ -249,6 +253,19 @@ func (o *EditOptions) editSecretsYaml(secretsYaml string) (string, error) {
 		return updatedYaml, err
 	}
 	return updatedYaml, nil
+}
+
+// removeMapEmptyValues recursively removes all empty string or nil entries
+func removeMapEmptyValues(m map[string]interface{}) {
+	for k, v := range m {
+		if v == nil || v == "" {
+			delete(m, k)
+		}
+		childMap, ok := v.(map[string]interface{})
+		if ok {
+			removeMapEmptyValues(childMap)
+		}
+	}
 }
 
 func (o *EditOptions) generateSchemaFile(requirements *config.RequirementsConfig) error {
