@@ -149,7 +149,7 @@ func (o *StatusOptions) updateStatus(r *v1.Release, kubeClient kubernetes.Interf
 			Ref:                   version,
 			Task:                  "deploy",
 			Environment:           environment,
-			Description:           fmt.Sprintf("release %s for version", appName, version),
+			Description:           fmt.Sprintf("release %s for version %s", appName, version),
 			RequiredContexts:      nil,
 			AutoMerge:             false,
 			TransientEnvironment:  false,
