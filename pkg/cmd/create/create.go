@@ -208,12 +208,17 @@ func (o *CreateOptions) overrideRequirements(dir string) error {
 		args = os.Args
 
 		// lets trim the actual command which could be `helmboot create` or `jxl boot create` or `jx alpha boot create`
-		if len(args) > 1 && args[1] == "create" {
-			args = args[2:]
-		} else if len(args) > 2 && args[2] == "create" {
-			args = args[3:]
-		} else if len(args) > 3 && args[3] == "create" {
-			args = args[4:]
+		for i := range args {
+			if i == 0 {
+				continue
+			}
+			if i > 3 {
+				break
+			}
+			if args[i] == "create" {
+				args = args[i+1:]
+				break
+			}
 		}
 	}
 

@@ -22,17 +22,12 @@ func TestCreate(t *testing.T) {
 	os.Setenv("JX_SECRETS_YAML", "test_data/secrets.yaml")
 
 	type testCase struct {
-		Name    string
-		Args    []string
-		Jenkins bool
+		Name string
+		Args []string
 	}
 	testCases := []testCase{
 		{
 			Name: "defaultcluster",
-		},
-		{
-			Name:    "jenkinscluster",
-			Jenkins: true,
 		},
 	}
 
@@ -49,7 +44,6 @@ func TestCreate(t *testing.T) {
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
-		co.Jenkins = tc.Jenkins
 
 		err = co.Run()
 		require.NoError(t, err, "failed to create repository for test %s", tc.Name)
@@ -72,12 +66,7 @@ func TestCreate(t *testing.T) {
 		require.NoError(t, err, "failed to load the apps configuration in dir %s for test %s", co.OutDir, tc.Name)
 		appMessage := fmt.Sprintf("test %s for file %s", tc.Name, appFileName)
 
-		if tc.Name == "jenkinscluster" {
-			// lets verify we have the jenkins operator installed
-			AssertHasApp(t, apps, "jenkins-operator/jenkins-operator", appMessage)
-		} else {
-			AssertHasApp(t, apps, "jenkins-x/lighthouse", appMessage)
-		}
+		AssertHasApp(t, apps, "jenkins-x/lighthouse", appMessage)
 
 		assert.FileExists(t, outFileName, "did not generate the Git URL file")
 		data, err := ioutil.ReadFile(outFileName)
