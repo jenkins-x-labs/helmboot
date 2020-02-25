@@ -70,7 +70,6 @@ list: ## List all make targets
 help:
 	@grep -h -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-all: build ## Build the binary
 full: check ## Build and run the tests
 check: build test ## Build and run the tests
 get-test-deps: ## Install test dependencies
@@ -134,3 +133,30 @@ release: clean build test linux win darwin
 .PHONY: clean
 clean: ## Clean the generated artifacts
 	rm -rf build release dist
+
+get-fmt-deps: ## Install test dependencies
+	$(GO_NOMOD) get golang.org/x/tools/cmd/goimports
+
+.PHONY: fmt
+fmt: importfmt ## Format the code
+	$(eval FORMATTED = $(shell $(GO) fmt ./...))
+	@if [ "$(FORMATTED)" == "" ]; \
+      	then \
+      	    echo "All Go files properly formatted"; \
+      	else \
+      		echo "Fixed formatting for: $(FORMATTED)"; \
+      	fi
+
+.PHONY: importfmt
+importfmt: get-fmt-deps
+	@echo "Formatting the imports..."
+	goimports -w $(GO_DEPENDENCIES)
+
+.PHONY: lint
+lint: ## Lint the code
+	./hack/gofmt.sh
+	./hack/linter.sh
+	./hack/generate.sh
+
+.PHONY: all
+all: fmt build lint test
