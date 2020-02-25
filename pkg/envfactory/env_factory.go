@@ -3,6 +3,7 @@ package envfactory
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
@@ -19,9 +20,10 @@ import (
 
 type EnvFactory struct {
 	JXFactory     jxfactory.Factory
-	Gitter        gits.Gitter
 	RepoName      string
+	GitURLOutFile string
 	BatchMode     bool
+	Gitter        gits.Gitter
 	IOFileHandles *util.IOFileHandles
 	ScmClient     *scm.Client
 	OutDir        string
@@ -31,6 +33,7 @@ type EnvFactory struct {
 func (o *EnvFactory) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.BatchMode, "batch-mode", "b", false, "Enables batch mode which avoids prompting for user input")
 	cmd.Flags().StringVarP(&o.RepoName, "repo", "", "", "the name of the development git repository to create")
+	cmd.Flags().StringVarP(&o.GitURLOutFile, "out", "", "", "the name of the file to save with the created git URL inside")
 
 }
 
@@ -90,7 +93,17 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to push to the git repository")
 	}
-	return o.PrintBootJobInstructions(requirements, repo.Link)
+	err = o.PrintBootJobInstructions(requirements, repo.Link)
+	if err != nil {
+		return err
+	}
+	if o.GitURLOutFile != "" {
+		err = ioutil.WriteFile(o.GitURLOutFile, []byte(repo.Link), util.DefaultFileWritePermissions)
+		if err != nil {
+			return errors.Wrapf(err, "failed to save Git URL to file %s", o.GitURLOutFile)
+		}
+	}
+	return nil
 }
 
 // PrintBootJobInstructions prints the instructions to run the installer

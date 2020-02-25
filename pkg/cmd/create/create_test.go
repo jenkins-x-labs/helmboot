@@ -3,6 +3,7 @@ package create_test
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
@@ -37,13 +38,16 @@ func TestCreate(t *testing.T) {
 		_, co := create.NewCmdCreate()
 		co.BatchMode = true
 		co.Gitter = fakegit.NewGitFakeClone()
-		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan"}
+		outFile, err := ioutil.TempFile("", "")
+		require.NoError(t, err, "failed to create tempo file")
+		outFileName := outFile.Name()
+		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName}
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
 		co.Jenkins = tc.Jenkins
 
-		err := co.Run()
+		err = co.Run()
 		require.NoError(t, err, "failed to create repository for test %s", tc.Name)
 
 		// now lets assert we created a new repository
@@ -70,6 +74,13 @@ func TestCreate(t *testing.T) {
 		} else {
 			AssertHasApp(t, apps, "jenkins-x/lighthouse", appMessage)
 		}
+
+		assert.FileExists(t, outFileName, "did not generate the Git URL file")
+		data, err := ioutil.ReadFile(outFileName)
+		require.NoError(t, err, "failed to load file %s", outFileName)
+		text := strings.TrimSpace(string(data))
+		expectedGitURL := fmt.Sprintf("https://fake.com/jstrachan/environment-%s-dev.git", tc.Name)
+		assert.Equal(t, expectedGitURL, text, "output Git URL")
 	}
 }
 

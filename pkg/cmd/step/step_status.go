@@ -9,7 +9,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x/go-scm/scm"
-	"github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
+	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
 	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -167,10 +167,7 @@ func (o *StatusOptions) updateStatus(r *v1.Release, kubeClient kubernetes.Interf
 	if err != nil {
 		log.Logger().Warnf("failed to find Target URL for app %s version %s: %s", appName, version, err.Error())
 	}
-	logLink, err := getLogURL(requirements, ns, appName)
-	if err != nil {
-		log.Logger().Warnf("failed to find Logs URL for app %s version %s: %s", appName, version, err.Error())
-	}
+	logLink := getLogURL(requirements, ns, appName)
 	description := fmt.Sprintf("Deployment %s", strings.TrimPrefix(version, "v"))
 
 	// TODO this could link to the UI?
@@ -214,12 +211,12 @@ func environmentLabel(jxClient versioned.Interface, devNS string, targetNS strin
 	return strings.TrimPrefix(targetNS, "jx-")
 }
 
-func getLogURL(requirements *config.RequirementsConfig, ns string, appName string) (string, error) {
+func getLogURL(requirements *config.RequirementsConfig, ns string, appName string) string {
 	c := &requirements.Cluster
 	if c.Provider == cloud.GKE {
-		return ContainerLogsURL(c.ProjectID, c.ClusterName, appName, ns), nil
+		return ContainerLogsURL(c.ProjectID, c.ClusterName, appName, ns)
 	}
-	return "", nil
+	return ""
 }
 
 // ContainerLogsURL generates the URL for a container logs URL

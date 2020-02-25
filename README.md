@@ -90,6 +90,12 @@ helmboot secrets import -f /tmp/mysecrets.yaml
 Once you have created your git repository via `helmboot create` or `helmboot upgrade` and populated the secrets as shown above you can run the boot `Job` via:
 
 ```
+helmboot run --git-url=https://github.com/myorg/env-mycluster-dev.git
+```
+
+Once you have booted up once you can omit the `git-url` argument as it can be discovered from the `dev` `Environment` resource:
+
+```
 helmboot run
 ```
 
