@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/jenkins-x-labs/helmboot/cmd/helmboot/app"
+	"github.com/jenkins-x-labs/helmboot/cmd/app"
 )
 
 // Entrypoint for the command

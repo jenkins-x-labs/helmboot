@@ -12,8 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// HelmBoot creates the new command
-func HelmBoot() *cobra.Command {
+// Main creates the new command
+func Main() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "boot",
 		Short: "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps",
