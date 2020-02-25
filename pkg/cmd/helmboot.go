@@ -15,7 +15,7 @@ import (
 // HelmBoot creates the new command
 func HelmBoot() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "helmboot",
+		Use:   "boot",
 		Short: "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := cmd.Help()
