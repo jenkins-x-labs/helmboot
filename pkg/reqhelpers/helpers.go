@@ -35,9 +35,6 @@ func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string) u
 	if gitURL != "" {
 		args = append(args, "--set", fmt.Sprintf("boot.bootGitURL=%s", gitURL))
 	}
-	// TODO detect local secret....
-	args = append(args, "--set", "secrets.gsm.enabled=true")
-
 	args = append(args, ".")
 
 	return util.Command{
