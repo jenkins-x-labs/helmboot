@@ -41,12 +41,12 @@ var (
 // CreateOptions the options for viewing running PRs
 type CreateOptions struct {
 	envfactory.EnvFactory
-	InitialGitURL string
-	Dir           string
-	Requirements  config.RequirementsConfig
-	Cmd           *cobra.Command
-	Args          []string
-	Jenkins       bool
+	InitialGitURL         string
+	Dir                   string
+	Requirements          config.RequirementsConfig
+	Cmd                   *cobra.Command
+	Args                  []string
+	DisableVerifyPackages bool
 }
 
 // NewCmdCreate creates a command object for the "create" command
@@ -67,7 +67,6 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 	o.Cmd = cmd
 
 	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", "", "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
-	cmd.Flags().BoolVarP(&o.Jenkins, "jenkins", "", false, "Enable the Jenkins Operator for managing Jenkins servers via GitOps")
 
 	AddRequirementsOptions(cmd, &o.Requirements)
 	o.EnvFactory.AddFlags(cmd)
@@ -165,11 +164,7 @@ func (o *CreateOptions) Run() error {
 func (o *CreateOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
 	gitURL := o.InitialGitURL
 	if gitURL == "" {
-		if o.Jenkins {
-			gitURL = common.DefaultJenkinsBootHelmfileRepository
-		} else {
-			gitURL = common.DefaultBootHelmfileRepository
-		}
+		gitURL = common.DefaultBootHelmfileRepository
 	}
 	var err error
 	dir := o.Dir
@@ -193,6 +188,7 @@ func (o *CreateOptions) verifyPreInstall(dir string) error {
 	vo := verify.StepVerifyPreInstallOptions{}
 	vo.CommonOptions = o.EnvFactory.JXAdapter().NewCommonOptions()
 	vo.Dir = dir
+	vo.DisableVerifyPackages = o.DisableVerifyPackages
 	return vo.Run()
 }
 

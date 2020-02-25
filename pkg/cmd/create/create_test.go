@@ -41,6 +41,7 @@ func TestCreate(t *testing.T) {
 		_, co := create.NewCmdCreate()
 		co.BatchMode = true
 		co.Gitter = fakegit.NewGitFakeClone()
+		co.DisableVerifyPackages = true
 		outFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err, "failed to create tempo file")
 		outFileName := outFile.Name()

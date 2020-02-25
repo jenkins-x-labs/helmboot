@@ -27,15 +27,9 @@ Now run the `helmboot create` command:
 helmboot create
 ```
 
-If you want to manage Jenkins servers via GitOps and the [Jenkins Operator](https://jenkinsci.github.io/kubernetes-operator/)  then use:
-
-``` 
-helmboot create --jenkins
-```
-
 This will create a new git repository for your installation.
 
-Once that is done you need to run the boot Job
+Once that is done you need to setup the secrets and then run the boot Job
 
 ### Setting up Secrets
 
