@@ -6,6 +6,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakeclientsfactory"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/factory"
+	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/pkg/gits"
@@ -96,6 +97,9 @@ func (a *JXAdapter) FindGitTokenForServer(serverURL string, owner string) (strin
 	cfg, err := authSvc.LoadConfig()
 	if err != nil {
 		return token, kind, errors.Wrapf(err, "failed to load local git auth config")
+	}
+	if cfg == nil {
+		cfg = &auth.AuthConfig{}
 	}
 	server := cfg.GetOrCreateServer(serverURL)
 	kind = server.Kind
