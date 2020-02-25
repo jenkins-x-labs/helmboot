@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,6 +18,8 @@ import (
 
 func TestCreate(t *testing.T) {
 	//t.Parallel()
+
+	os.Setenv("JX_SECRETS_YAML", "test_data/secrets.yaml")
 
 	type testCase struct {
 		Name    string
