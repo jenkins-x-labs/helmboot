@@ -3,6 +3,7 @@ package create
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -206,7 +207,21 @@ func (o *CreateOptions) overrideRequirements(dir string) error {
 	o.Requirements = *requirements
 
 	// lets re-parse the CLI arguments to re-populate the loaded requirements
-	err = o.Cmd.Flags().Parse(o.Args)
+	args := o.Args
+	if len(args) == 0 {
+		args = os.Args
+
+		// lets trim the actual command which could be `helmboot create` or `jxl boot create` or `jx alpha boot create`
+		if len(args) > 1 && args[1] == "create" {
+			args = args[2:]
+		} else if len(args) > 2 && args[2] == "create" {
+			args = args[3:]
+		} else if len(args) > 3 && args[3] == "create" {
+			args = args[4:]
+		}
+	}
+
+	err = o.Cmd.Flags().Parse(args)
 	if err != nil {
 		return errors.Wrap(err, "failed to reparse arguments")
 	}
