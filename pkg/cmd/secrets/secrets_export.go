@@ -1,11 +1,13 @@
 package secrets
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -23,7 +25,10 @@ var (
 
 	exportExample = templates.Examples(`
 		# exports the secrets from where they are stored (cloud secret manager / vault / kubernetes Secret)
-		helmboot secrets export -f /tmp/secrets/mysecrets.yaml
+		%s secrets export -f /tmp/secrets/mysecrets.yaml
+
+		# display the current secrets values on the terminal
+		%s secrets export -c
 	`)
 )
 
@@ -42,7 +47,7 @@ func NewCmdExport() (*cobra.Command, *ExportOptions) {
 		Use:     "export",
 		Short:   "Exports the secrets to the local file system",
 		Long:    exportLong,
-		Example: exportExample,
+		Example: fmt.Sprintf(exportExample, common.BinaryName, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

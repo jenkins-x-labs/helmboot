@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/envfactory"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
@@ -33,7 +34,7 @@ var (
 
 	statusExample = templates.Examples(`
 		# update the status in git after a promote pipeline
-		helmboot step status
+		%s step status
 	`)
 )
 
@@ -50,7 +51,7 @@ func NewCmdStatus() (*cobra.Command, *StatusOptions) {
 		Use:     "status",
 		Short:   "Updates the git deployment status after a promotion",
 		Long:    statusLong,
-		Example: statusExample,
+		Example: fmt.Sprintf(statusExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

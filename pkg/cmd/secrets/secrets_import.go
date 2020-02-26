@@ -1,8 +1,10 @@
 package secrets
 
 import (
+	"fmt"
 	"io/ioutil"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -20,7 +22,7 @@ var (
 
 	importExample = templates.Examples(`
 		# imports the secrets
-		helmboot secrets import -f /tmp/mysecrets.yaml
+		%s secrets import -f /tmp/mysecrets.yaml
 	`)
 )
 
@@ -38,7 +40,7 @@ func NewCmdImport() (*cobra.Command, *ImportOptions) {
 		Use:     "import",
 		Short:   "imports the secrets from the local file system",
 		Long:    importLong,
-		Example: importExample,
+		Example: fmt.Sprintf(importExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

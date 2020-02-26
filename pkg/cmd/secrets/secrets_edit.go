@@ -124,12 +124,12 @@ const (
 
 var (
 	editLong = templates.LongDesc(`
-		Edits the secrets
+		Edits all or the missing secrets and stores them in the underlying Secret Manager
 `)
 
 	editExample = templates.Examples(`
 		# edit the secrets
-		helmboot secrets edit
+		%s secrets edit
 	`)
 )
 
@@ -151,7 +151,7 @@ func NewCmdEdit() (*cobra.Command, *EditOptions) {
 		Use:     "edit",
 		Short:   "Edits the secrets",
 		Long:    editLong,
-		Example: editExample,
+		Example: fmt.Sprintf(editExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

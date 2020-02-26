@@ -45,7 +45,7 @@ var (
 
 	upgradeExample = templates.Examples(`
 		# upgrades your current cluster of Jenkins X to helm 3 / helmfile
-		helmboot upgrade
+		%s upgrade
 	`)
 )
 
@@ -73,7 +73,7 @@ func NewCmdUpgrade() (*cobra.Command, *UpgradeOptions) {
 		Use:     "upgrade",
 		Short:   "Upgrades your Development environmentsgit repository to use helmfile and helm 3",
 		Long:    upgradeLong,
-		Example: upgradeExample,
+		Example: fmt.Sprintf(upgradeExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

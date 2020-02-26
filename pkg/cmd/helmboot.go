@@ -15,7 +15,7 @@ import (
 // Main creates the new command
 func Main() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "boot",
+		Use:   common.TopLevelCommand,
 		Short: "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps",
 		Run: func(cmd *cobra.Command, args []string) {
 			err := cmd.Help()
