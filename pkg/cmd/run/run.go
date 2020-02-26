@@ -43,8 +43,11 @@ var (
 `)
 
 	stepCustomPipelineExample = templates.Examples(`
-		# triggers the Jenkinsfile in the current directory in a Jenkins server installed via the Jenkins Operator
-		tp
+		# runs the boot Job to install for the first time
+		%s run --git-url https://github.com/myorg/environment-mycluster-dev.git
+
+		# runs the boot Job to upgrade a cluster from the latest in git
+		%s run 
 `)
 )
 
@@ -53,9 +56,9 @@ func NewCmdRun() *cobra.Command {
 	options := HelmBootOptions{}
 	command := &cobra.Command{
 		Use:     "run",
-		Short:   "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps. This is usually ran from inside the cluster",
+		Short:   "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps by triggering a Kubernetes Job inside the cluster",
 		Long:    stepCustomPipelineLong,
-		Example: stepCustomPipelineExample,
+		Example: fmt.Sprintf(stepCustomPipelineExample, common.BinaryName, common.BinaryName),
 		Run: func(command *cobra.Command, args []string) {
 			common.SetLoggingLevel(command, args)
 			err := options.Run()

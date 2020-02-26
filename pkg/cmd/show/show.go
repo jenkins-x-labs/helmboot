@@ -3,6 +3,7 @@ package show
 import (
 	"fmt"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/envfactory"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
@@ -20,7 +21,7 @@ var (
 
 	showExample = templates.Examples(`
 		# display the command line to run the boot job
-		helmboot show
+		%s show
 	`)
 )
 
@@ -37,7 +38,7 @@ func NewCmdShow() (*cobra.Command, *ShowOptions) {
 		Use:     "show",
 		Short:   "Displays the command to boot",
 		Long:    showLong,
-		Example: showExample,
+		Example: fmt.Sprintf(showExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			err := o.Run()
 			helper.CheckErr(err)

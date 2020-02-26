@@ -34,7 +34,7 @@ var (
 
 	createExample = templates.Examples(`
 		# create a new git repository which we can then boot up
-		helmboot create
+		%s create
 	`)
 )
 
@@ -57,7 +57,7 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 		Use:     "create",
 		Short:   "Creates a new git repository for a new Jenkins X installation",
 		Long:    createLong,
-		Example: createExample,
+		Example: fmt.Sprintf(createExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			o.Args = args
 			err := o.Run()
