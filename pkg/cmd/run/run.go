@@ -23,6 +23,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -164,6 +165,7 @@ func (o *HelmBootOptions) tailJobLogs() error {
 		"job-name": "jx-boot",
 	}
 	containerName := "boot"
+	podInterface := client.CoreV1().Pods(ns)
 	for {
 		pod := ""
 		if err != nil {
@@ -180,6 +182,15 @@ func (o *HelmBootOptions) tailJobLogs() error {
 		if err != nil {
 			return nil
 		}
+		podResource, err := podInterface.Get(pod, metav1.GetOptions{})
+		if err != nil {
+			return errors.Wrapf(err, "failed to get pod %s in namespace %s", pod, ns)
+		}
+		if kube.IsPodCompleted(podResource) {
+			log.Logger().Infof("the Job pod %s has completed successfully", pod)
+			return nil
+		}
+		log.Logger().Warnf("Job pod %s is not completed but has status: %s", pod, kube.PodStatus(podResource))
 	}
 }
 
