@@ -2,17 +2,15 @@ module github.com/jenkins-x-labs/helmboot
 
 require (
 	github.com/banzaicloud/bank-vaults v0.0.0-20190508130850-5673d28c46bd
-	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.3.0
 	github.com/google/uuid v1.1.1
 	github.com/heptio/sonobuoy v0.16.0
 	github.com/jenkins-x/go-scm v1.5.76
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200205060623-f7c50978003a
+	github.com/jenkins-x/jx v0.0.0-20200227063938-2e166962cf26
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/serving v0.7.0
 	github.com/pkg/errors v0.8.1
-	github.com/sanathkr/go-yaml v0.0.0-20170819195128-ed9d249f429b
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/tektoncd/pipeline v0.8.0
@@ -22,6 +20,7 @@ require (
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
 	k8s.io/metrics v0.0.0-20180620010437-b11cf31b380b
 	k8s.io/test-infra v0.0.0-20190131093439-a22cef183a8f
+	sigs.k8s.io/yaml v1.1.0
 
 )
 

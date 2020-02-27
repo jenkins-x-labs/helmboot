@@ -4,11 +4,16 @@ import (
 	"io/ioutil"
 	"testing"
 
+	"sigs.k8s.io/yaml"
+
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakejxfactory"
+	"github.com/jenkins-x/jx/pkg/config"
+	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/runtime"
 )
 
 const (
@@ -31,7 +36,19 @@ func TestImportExportCommands(t *testing.T) {
 	_, eo := secrets.NewCmdExport()
 	_, io := secrets.NewCmdImport()
 
-	f := fakejxfactory.NewFakeFactory()
+	ns := "jx"
+	devEnv := kube.CreateDefaultDevEnvironment(ns)
+	devEnv.Namespace = ns
+	req, err := config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
+	if req == nil || err != nil {
+		// lets populate some dummy requirements
+		req = config.NewRequirementsConfig()
+		reqBytes, err := yaml.Marshal(req)
+		require.NoError(t, err, "there was a problem marshalling the requirements file to include it in the TeamSettings")
+		devEnv.Spec.TeamSettings.BootRequirements = string(reqBytes)
+	}
+	jxObjects := []runtime.Object{devEnv}
+	f := fakejxfactory.NewFakeFactoryWithObjects(nil, jxObjects, ns)
 	eo.Factory = f
 	io.Factory = f
 
