@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/google/uuid"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/create"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
@@ -23,6 +22,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/jenkins-x/jx/pkg/config"

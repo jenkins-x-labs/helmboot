@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/ghodss/yaml"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/upgrade"
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakegit"
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakejxfactory"
@@ -15,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/yaml"
 )
 
 func TestUpgrade(t *testing.T) {

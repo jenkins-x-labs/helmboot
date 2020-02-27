@@ -2,7 +2,6 @@ module github.com/jenkins-x-labs/helmboot
 
 require (
 	github.com/banzaicloud/bank-vaults v0.0.0-20190508130850-5673d28c46bd
-	github.com/ghodss/yaml v1.0.0
 	github.com/google/go-cmp v0.3.0
 	github.com/google/uuid v1.1.1
 	github.com/heptio/sonobuoy v0.16.0

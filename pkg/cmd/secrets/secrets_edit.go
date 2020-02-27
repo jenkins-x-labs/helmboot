@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
@@ -21,6 +20,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/yaml"
 )
 
 const (

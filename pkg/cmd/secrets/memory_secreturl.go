@@ -3,9 +3,9 @@ package secrets
 import (
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
+	"sigs.k8s.io/yaml"
 )
 
 // MemoryClient a local file system based client loading/saving content from the given URL
