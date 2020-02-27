@@ -9,6 +9,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/helm"
 	"github.com/jenkins-x/jx/pkg/io/secrets"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
+	"github.com/jenkins-x/jx/pkg/kustomize"
 	"github.com/jenkins-x/jx/pkg/util"
 	"k8s.io/client-go/kubernetes"
 
@@ -200,4 +201,8 @@ func (f *fakeClientsFactory) SetSecretsLocation(location secrets.SecretsLocation
 
 func (f *fakeClientsFactory) ResetSecretsLocation() {
 	f.defaultFactory.ResetSecretsLocation()
+}
+
+func (f *fakeClientsFactory) CreateKustomizer() kustomize.Kustomizer {
+	return nil
 }

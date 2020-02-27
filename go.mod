@@ -8,11 +8,10 @@ require (
 	github.com/heptio/sonobuoy v0.16.0
 	github.com/jenkins-x/go-scm v1.5.76
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200205060623-f7c50978003a
+	github.com/jenkins-x/jx v0.0.0-20200227063938-2e166962cf26
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/serving v0.7.0
 	github.com/pkg/errors v0.8.1
-	github.com/sanathkr/go-yaml v0.0.0-20170819195128-ed9d249f429b
 	github.com/spf13/cobra v0.0.5
 	github.com/stretchr/testify v1.4.0
 	github.com/tektoncd/pipeline v0.8.0
