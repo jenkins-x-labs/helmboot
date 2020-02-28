@@ -65,6 +65,7 @@ func NewCmdExport() (*cobra.Command, *ExportOptions) {
 func AddKindResolverFlags(cmd *cobra.Command, o *factory.KindResolver) {
 	cmd.Flags().StringVarP(&o.Kind, "kind", "k", "", "the kind of Secret Manager you wish to use. If no value is supplied it is detected based on the jx-requirements.yml. Possible values are: "+strings.Join(secretmgr.KindValues, ", "))
 	cmd.Flags().StringVarP(&o.Dir, "dir", "", ".", "the local directory used to find the jx-requirements.yml file if the cluster has not yet been booted")
+	cmd.Flags().StringVarP(&o.GitURL, "git-url", "u", "", "specify the git URL for the development environment so we can find the requirements")
 }
 
 // Run implements the command
