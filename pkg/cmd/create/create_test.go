@@ -40,7 +40,7 @@ func TestCreate(t *testing.T) {
 		outFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err, "failed to create tempo file")
 		outFileName := outFile.Name()
-		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName, "--env-git-public"}
+		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName, "--env-git-public", "--git-public"}
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
@@ -77,6 +77,7 @@ func TestCreate(t *testing.T) {
 		requirements, _, err := config.LoadRequirementsConfig(co.OutDir)
 		require.NoError(t, err, "failed to load requirements from %s", co.OutDir)
 		assert.Equal(t, true, requirements.Cluster.EnvironmentGitPublic, "requirements.Cluster.EnvironmentGitPublic")
+		assert.Equal(t, true, requirements.Cluster.GitPublic, "requirements.Cluster.GitPublic")
 	}
 }
 
