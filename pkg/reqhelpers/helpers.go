@@ -2,10 +2,12 @@ package reqhelpers
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
 	"github.com/jenkins-x/jx/pkg/config"
+	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -73,4 +75,26 @@ func GetRequirementsFromEnvironment(kubeClient kubernetes.Interface, jxClient ve
 	}
 	requirements := config.NewRequirementsConfig()
 	return devEnv, requirements, nil
+}
+
+// GetRequirementsFromGit clones the given git repository to get the requirements
+func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
+	tempDir, err := ioutil.TempDir("", "jx-boot-")
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create temp dir")
+	}
+
+	log.Logger().Infof("cloning %s to %s", gitURL, tempDir)
+
+	gitter := gits.NewGitCLI()
+	err = gitter.Clone(gitURL, tempDir)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to git clone %s to dir %s", gitURL, tempDir)
+	}
+
+	requirements, _, err := config.LoadRequirementsConfig(tempDir)
+	if err != nil {
+		return requirements, errors.Wrapf(err, "failed to requirements YAML file from %s", tempDir)
+	}
+	return requirements, nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/cloud"
@@ -104,7 +105,8 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 		}
 	}
 	if r.GitURL != "" {
-		return r.resolveRequirementsFromGit(ns)
+		requirements, err := reqhelpers.GetRequirementsFromGit(r.GitURL)
+		return requirements, ns, err
 	}
 
 	requirements, _, err := config.LoadRequirementsConfig(r.Dir)
