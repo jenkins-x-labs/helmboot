@@ -249,6 +249,13 @@ func (o *HelmBootOptions) findRequirementsAndGitURL() (*config.RequirementsConfi
 	}
 	if o.GitURL != "" {
 		gitURL = o.GitURL
+
+		if requirements == nil {
+			requirements, err = reqhelpers.GetRequirementsFromGit(gitURL)
+			if err != nil {
+				return requirements, gitURL, errors.Wrapf(err, "failed to get requirements from git URL %s", gitURL)
+			}
+		}
 	}
 
 	if requirements == nil {
