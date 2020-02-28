@@ -2,13 +2,16 @@ package factory
 
 import (
 	"fmt"
+	"io/ioutil"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/config"
+	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/kube"
+	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,6 +22,7 @@ type KindResolver struct {
 	Factory jxfactory.Factory
 	Kind    string
 	Dir     string
+	GitURL  string
 
 	// outputs which can be useful
 	DevEnvironment *v1.Environment
@@ -99,9 +103,34 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 			return requirements, ns, nil
 		}
 	}
+	if r.GitURL != "" {
+		return r.resolveRequirementsFromGit(ns)
+	}
+
 	requirements, _, err := config.LoadRequirementsConfig(r.Dir)
 	if err != nil {
 		return requirements, ns, errors.Wrapf(err, "failed to requirements YAML file from %s", r.Dir)
+	}
+	return requirements, ns, nil
+}
+
+func (r *KindResolver) resolveRequirementsFromGit(ns string) (*config.RequirementsConfig, string, error) {
+	tempDir, err := ioutil.TempDir("", "jx-boot-")
+	if err != nil {
+		return nil, ns, errors.Wrap(err, "failed to create temp dir")
+	}
+
+	log.Logger().Infof("cloning %s to %s", r.GitURL, tempDir)
+
+	gitter := gits.NewGitCLI()
+	err = gitter.Clone(r.GitURL, tempDir)
+	if err != nil {
+		return nil, ns, errors.Wrapf(err, "failed to git clone %s to dir %s", r.GitURL, tempDir)
+	}
+
+	requirements, _, err := config.LoadRequirementsConfig(tempDir)
+	if err != nil {
+		return requirements, ns, errors.Wrapf(err, "failed to requirements YAML file from %s", tempDir)
 	}
 	return requirements, ns, nil
 }

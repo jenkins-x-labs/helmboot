@@ -44,9 +44,16 @@ type CreateOptions struct {
 	InitialGitURL         string
 	Dir                   string
 	Requirements          config.RequirementsConfig
+	Flags                 RequirementBools
 	Cmd                   *cobra.Command
 	Args                  []string
 	DisableVerifyPackages bool
+}
+
+// RequirementBools for the boolean flags we only update if specified on the CLI
+type RequirementBools struct {
+	AutoUpgrade, EnvironmentGitPublic, GitPublic, GitOps, Kaniko, Terraform bool
+	VaultRecreateBucket, VaultDisableURLDiscover                            bool
 }
 
 // NewCmdCreate creates a command object for the "create" command
@@ -67,6 +74,16 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 	o.Cmd = cmd
 
 	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", "", "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
+	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to create the development environment git repository inside. If not specified a temporary directory will be used")
+
+	cmd.Flags().BoolVarP(&o.Flags.AutoUpgrade, "autoupgrade", "", false, "enables or disables auto upgrades")
+	cmd.Flags().BoolVarP(&o.Flags.EnvironmentGitPublic, "env-git-public", "", false, "enables or disables whether the environment repositories should be public")
+	cmd.Flags().BoolVarP(&o.Flags.GitPublic, "git-public", "", false, "enables or disables whether the project repositories should be public")
+	cmd.Flags().BoolVarP(&o.Flags.GitOps, "gitops", "g", false, "enables or disables the use of gitops")
+	cmd.Flags().BoolVarP(&o.Flags.Kaniko, "kaniko", "", false, "enables or disables the use of kaniko")
+	cmd.Flags().BoolVarP(&o.Flags.Terraform, "terraform", "", false, "enables or disables the use of terraform")
+	cmd.Flags().BoolVarP(&o.Flags.VaultRecreateBucket, "vault-recreate-bucket", "", false, "enables or disables whether to rereate the secret bucket on boot")
+	cmd.Flags().BoolVarP(&o.Flags.VaultDisableURLDiscover, "vault-disable-url-discover", "", false, "override the default lookup of the Vault URL, could be incluster service or external ingress")
 
 	AddRequirementsOptions(cmd, &o.Requirements)
 	o.EnvFactory.AddFlags(cmd)
@@ -168,7 +185,12 @@ func (o *CreateOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
 	}
 	var err error
 	dir := o.Dir
-	if dir == "" {
+	if dir != "" {
+		err = os.MkdirAll(dir, util.DefaultWritePermissions)
+		if err != nil {
+			return "", errors.Wrapf(err, "failed to create directory %s", dir)
+		}
+	} else {
 		dir, err = ioutil.TempDir("", "helmboot-")
 		if err != nil {
 			return "", errors.Wrap(err, "failed to create temporary directory")
@@ -244,6 +266,32 @@ func (o *CreateOptions) overrideRequirements(dir string) error {
 func (o *CreateOptions) applyDefaults() error {
 	r := &o.Requirements
 
+	// override boolean flags if specified
+	if o.FlagChanged("autoupgrade") {
+		r.AutoUpdate.Enabled = o.Flags.AutoUpgrade
+	}
+	if o.FlagChanged("env-git-public") {
+		r.Cluster.EnvironmentGitPublic = o.Flags.EnvironmentGitPublic
+	}
+	if o.FlagChanged("git-public") {
+		r.Cluster.GitPublic = o.Flags.GitPublic
+	}
+	if o.FlagChanged("gitops") {
+		r.GitOps = o.Flags.GitOps
+	}
+	if o.FlagChanged("kaniko") {
+		r.Kaniko = o.Flags.Kaniko
+	}
+	if o.FlagChanged("terraform") {
+		r.Terraform = o.Flags.Terraform
+	}
+	if o.FlagChanged("vault-disable-url-discover") {
+		r.Vault.DisableURLDiscovery = o.Flags.VaultDisableURLDiscover
+	}
+	if o.FlagChanged("vault-recreate-bucket") {
+		r.Vault.RecreateBucket = o.Flags.VaultRecreateBucket
+	}
+
 	gitKind := r.Cluster.GitKind
 	gitKinds := append(gits.KindGits, "fake")
 	if gitKind != "" && util.StringArrayIndex(gitKinds, gitKind) < 0 {
@@ -268,6 +316,17 @@ func (o *CreateOptions) applyDefaults() error {
 	o.defaultStorage(&storage.Reports)
 	o.defaultStorage(&storage.Repository)
 	return nil
+}
+
+// FlagChanged returns true if the given flag was supplied on the command line
+func (o *CreateOptions) FlagChanged(name string) bool {
+	if o.Cmd != nil {
+		f := o.Cmd.Flag(name)
+		if f != nil {
+			return f.Changed
+		}
+	}
+	return false
 }
 
 func (o *CreateOptions) defaultStorage(storage *config.StorageEntryConfig) {

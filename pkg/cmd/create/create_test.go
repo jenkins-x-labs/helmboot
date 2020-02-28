@@ -40,7 +40,7 @@ func TestCreate(t *testing.T) {
 		outFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err, "failed to create tempo file")
 		outFileName := outFile.Name()
-		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName}
+		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName, "--env-git-public", "--git-public"}
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
@@ -59,7 +59,6 @@ func TestCreate(t *testing.T) {
 		assert.Equal(t, fullName, repo.FullName, "repo.FullName for %s", tc.Name)
 		assert.Equal(t, repoName, repo.Name, "repo.FullName for %s", tc.Name)
 
-		// TODO verify apps file has jenkins added
 		t.Logf("test %s created dir %s\n", tc.Name, co.OutDir)
 
 		apps, appFileName, err := config.LoadAppConfig(co.OutDir)
@@ -74,6 +73,11 @@ func TestCreate(t *testing.T) {
 		text := strings.TrimSpace(string(data))
 		expectedGitURL := fmt.Sprintf("https://fake.com/jstrachan/environment-%s-dev.git", tc.Name)
 		assert.Equal(t, expectedGitURL, text, "output Git URL")
+
+		requirements, _, err := config.LoadRequirementsConfig(co.OutDir)
+		require.NoError(t, err, "failed to load requirements from %s", co.OutDir)
+		assert.Equal(t, true, requirements.Cluster.EnvironmentGitPublic, "requirements.Cluster.EnvironmentGitPublic")
+		assert.Equal(t, true, requirements.Cluster.GitPublic, "requirements.Cluster.GitPublic")
 	}
 }
 
