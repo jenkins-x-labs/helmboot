@@ -211,6 +211,7 @@ func (o *CreateOptions) verifyPreInstall(dir string) error {
 	vo.CommonOptions = o.EnvFactory.JXAdapter().NewCommonOptions()
 	vo.Dir = dir
 	vo.DisableVerifyPackages = o.DisableVerifyPackages
+	vo.NoSecretYAMLValidate = true
 	return vo.Run()
 }
 
