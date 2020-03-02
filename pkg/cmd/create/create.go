@@ -44,16 +44,16 @@ type CreateOptions struct {
 	InitialGitURL         string
 	Dir                   string
 	Requirements          config.RequirementsConfig
-	Flags                 RequirementBools
 	Cmd                   *cobra.Command
 	Args                  []string
+	Flags                 RequirementBools
 	DisableVerifyPackages bool
 }
 
 // RequirementBools for the boolean flags we only update if specified on the CLI
 type RequirementBools struct {
-	AutoUpgrade, EnvironmentGitPublic, GitPublic, GitOps, Kaniko, Terraform bool
-	VaultRecreateBucket, VaultDisableURLDiscover                            bool
+	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote, GitOps, Kaniko, Terraform bool
+	VaultRecreateBucket, VaultDisableURLDiscover                                               bool
 }
 
 // NewCmdCreate creates a command object for the "create" command
@@ -77,6 +77,7 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to create the development environment git repository inside. If not specified a temporary directory will be used")
 
 	cmd.Flags().BoolVarP(&o.Flags.AutoUpgrade, "autoupgrade", "", false, "enables or disables auto upgrades")
+	cmd.Flags().BoolVarP(&o.Flags.EnvironmentRemote, "env-remote", "", false, "if enables then all other environments than dev (staging & production by default) will be configured to be in remote clusters")
 	cmd.Flags().BoolVarP(&o.Flags.EnvironmentGitPublic, "env-git-public", "", false, "enables or disables whether the environment repositories should be public")
 	cmd.Flags().BoolVarP(&o.Flags.GitPublic, "git-public", "", false, "enables or disables whether the project repositories should be public")
 	cmd.Flags().BoolVarP(&o.Flags.GitOps, "gitops", "g", false, "enables or disables the use of gitops")
@@ -291,6 +292,15 @@ func (o *CreateOptions) applyDefaults() error {
 	}
 	if o.FlagChanged("vault-recreate-bucket") {
 		r.Vault.RecreateBucket = o.Flags.VaultRecreateBucket
+	}
+
+	if o.Flags.EnvironmentRemote {
+		for i, e := range r.Environments {
+			if e.Key == "dev" {
+				continue
+			}
+			r.Environments[i].RemoteCluster = true
+		}
 	}
 
 	gitKind := r.Cluster.GitKind
