@@ -44,9 +44,9 @@ type CreateOptions struct {
 	InitialGitURL         string
 	Dir                   string
 	Requirements          config.RequirementsConfig
-	Flags                 RequirementBools
 	Cmd                   *cobra.Command
 	Args                  []string
+	Flags                 RequirementBools
 	DisableVerifyPackages bool
 }
 

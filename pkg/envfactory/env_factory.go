@@ -21,13 +21,13 @@ import (
 
 type EnvFactory struct {
 	JXFactory     jxfactory.Factory
+	Gitter        gits.Gitter
 	RepoName      string
 	GitURLOutFile string
-	BatchMode     bool
-	Gitter        gits.Gitter
+	OutDir        string
 	IOFileHandles *util.IOFileHandles
 	ScmClient     *scm.Client
-	OutDir        string
+	BatchMode     bool
 }
 
 // AddFlags adds common CLI flags
