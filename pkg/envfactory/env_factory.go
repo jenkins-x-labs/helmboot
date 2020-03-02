@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x/go-scm/scm"
@@ -112,8 +113,8 @@ func (o *EnvFactory) PrintBootJobInstructions(requirements *config.RequirementsC
 	log.Logger().Info("\nto boot your cluster run the following commands:\n\n")
 
 	info := util.ColorInfo
-	log.Logger().Infof("%s", info("helmboot secrets edit"))
-	log.Logger().Infof("%s", info(fmt.Sprintf("helmboot run --git-url %s", link)))
+	log.Logger().Infof("%s", info(fmt.Sprintf("%s secrets edit --git-url %s", common.BinaryName, link)))
+	log.Logger().Infof("%s", info(fmt.Sprintf("%s run --git-url %s", common.BinaryName, link)))
 	return nil
 }
 
