@@ -1,4 +1,4 @@
-package create
+package verify
 
 import (
 	"fmt"
@@ -10,48 +10,49 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
+	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
-
-	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/spf13/cobra"
 )
 
 var (
-	createLong = templates.LongDesc(`
-		Creates a new git repository for a new Jenkins X installation
+	verifyLong = templates.LongDesc(`
+		Verifies the given environment git repository is setup correctly.
+
+		Typicaly this is mostly used with Multi Cluster to verify the Staging / Production environment git repository is setup correctly
 `)
 
-	createExample = templates.Examples(`
-		# create a new git repository which we can then boot up
-		%s create
+	verifyExample = templates.Examples(`
+		# verifies the staging repository is setup correctly
+		%s verify --git-url=https://github.com/myorg/environment-mycluster-staging.git
 	`)
 )
 
-// CreateOptions the options for creating a repository
-type CreateOptions struct {
+// VerifyOptions the options for verifying
+type VerifyOptions struct {
 	envfactory.EnvFactory
 	DisableVerifyPackages bool
-	Requirements          config.RequirementsConfig
 	Flags                 reqhelpers.RequirementBools
-	InitialGitURL         string
-	Dir                   string
+	OverrideRequirements  config.RequirementsConfig
 	Cmd                   *cobra.Command
 	Args                  []string
+	GitCloneURL           string
+	Dir                   string
 }
 
-// NewCmdCreate creates a command object for the "create" command
-func NewCmdCreate() (*cobra.Command, *CreateOptions) {
-	o := &CreateOptions{}
+// NewCmdVerify creates a command object for the command
+func NewCmdVerify() (*cobra.Command, *VerifyOptions) {
+	o := &VerifyOptions{}
 
 	cmd := &cobra.Command{
-		Use:     "create",
-		Short:   "Creates a new git repository for a new Jenkins X installation",
-		Long:    createLong,
-		Example: fmt.Sprintf(createExample, common.BinaryName),
+		Use:     "verify",
+		Short:   "Verifies the given environment git repository is setup correctly",
+		Long:    verifyLong,
+		Example: fmt.Sprintf(verifyExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
 			o.Cmd = cmd
 			o.Args = args
@@ -60,19 +61,20 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 		},
 	}
 	o.Cmd = cmd
-
-	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", "", "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
-	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to create the development environment git repository inside. If not specified a temporary directory will be used")
-
-	reqhelpers.AddRequirementsFlagsOptions(cmd, &o.Flags)
-	reqhelpers.AddRequirementsOptions(cmd, &o.Requirements)
-
-	o.EnvFactory.AddFlags(cmd)
+	o.AddVerifyOptions(cmd)
 	return cmd, o
 }
 
+func (o *VerifyOptions) AddVerifyOptions(cmd *cobra.Command) {
+	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to clone the git repository. If no directory is specified a temporary directory will be used")
+	cmd.Flags().StringVarP(&o.GitCloneURL, "git-url", "", "", "The git repository to clone to upgrade")
+
+	reqhelpers.AddRequirementsOptions(cmd, &o.OverrideRequirements)
+	reqhelpers.AddRequirementsFlagsOptions(cmd, &o.Flags)
+}
+
 // Run implements the command
-func (o *CreateOptions) Run() error {
+func (o *VerifyOptions) Run() error {
 	if o.Gitter == nil {
 		o.Gitter = gits.NewGitCLI()
 	}
@@ -82,7 +84,7 @@ func (o *CreateOptions) Run() error {
 		return err
 	}
 
-	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, &o.Requirements, &o.Flags)
+	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, &o.OverrideRequirements, &o.Flags)
 	if err != nil {
 		return errors.Wrapf(err, "failed to override requirements in dir %s", dir)
 	}
@@ -92,27 +94,31 @@ func (o *CreateOptions) Run() error {
 		return errors.Wrapf(err, "failed to verify requirements in dir %s", dir)
 	}
 
-	log.Logger().Infof("created git source at %s", util.ColorInfo(dir))
-
 	changes, err := githelpers.AddAndCommitFiles(o.Gitter, dir, "fix: initial code")
 	if err != nil {
 		return err
 	}
-
 	if !changes {
-		log.Logger().Warnf("no changes made")
 		return nil
 	}
-	return o.EnvFactory.CreateDevEnvGitRepository(dir)
+
+	remote := "origin"
+	err = o.Gitter.Push(dir, remote, false)
+	if err != nil {
+		return errors.Wrapf(err, "failed to push to remote %s from dir %s", remote, dir)
+	}
+
+	log.Logger().Infof("pushed requirements changes to %s", util.ColorInfo(o.GitCloneURL))
+	return nil
 }
 
 // gitCloneIfRequired if the specified directory is already a git clone then lets just use it
 // otherwise lets make a temporary directory and clone the git repository specified
 // or if there is none make a new one
-func (o *CreateOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
-	gitURL := o.InitialGitURL
+func (o *VerifyOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
+	gitURL := o.GitCloneURL
 	if gitURL == "" {
-		gitURL = common.DefaultBootHelmfileRepository
+		return "", util.MissingOption("git-url")
 	}
 	var err error
 	dir := o.Dir

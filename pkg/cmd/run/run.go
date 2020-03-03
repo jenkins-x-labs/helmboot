@@ -27,8 +27,8 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-// HelmBootOptions contains the command line arguments for this command
-type HelmBootOptions struct {
+// RunOptions contains the command line arguments for this command
+type RunOptions struct {
 	boot.BootOptions
 	JXFactory jxfactory.Factory
 	Gitter    gits.Gitter
@@ -53,7 +53,7 @@ var (
 
 // NewCmdRun creates the new command
 func NewCmdRun() *cobra.Command {
-	options := HelmBootOptions{}
+	options := RunOptions{}
 	command := &cobra.Command{
 		Use:     "run",
 		Short:   "boots up Jenkins and/or Jenkins X in a Kubernetes cluster using GitOps by triggering a Kubernetes Job inside the cluster",
@@ -85,7 +85,7 @@ func NewCmdRun() *cobra.Command {
 }
 
 // Run implements the command
-func (o *HelmBootOptions) Run() error {
+func (o *RunOptions) Run() error {
 	if o.JobMode || !IsInCluster() {
 		return o.RunBootJob()
 	}
@@ -99,7 +99,7 @@ func (o *HelmBootOptions) Run() error {
 }
 
 // RunBootJob runs the boot installer Job
-func (o *HelmBootOptions) RunBootJob() error {
+func (o *RunOptions) RunBootJob() error {
 	requirements, gitURL, err := o.findRequirementsAndGitURL()
 	if err != nil {
 		return err
@@ -156,7 +156,7 @@ func (o *HelmBootOptions) RunBootJob() error {
 	return o.tailJobLogs()
 }
 
-func (o *HelmBootOptions) tailJobLogs() error {
+func (o *RunOptions) tailJobLogs() error {
 	a := jxadapt.NewJXAdapter(o.JXFactory, o.Git(), o.BatchMode)
 	client, ns, err := o.JXFactory.CreateKubeClient()
 	if err != nil {
@@ -197,7 +197,7 @@ func (o *HelmBootOptions) tailJobLogs() error {
 	}
 }
 
-func (o *HelmBootOptions) hasHelmRelease(releaseName string) (bool, error) {
+func (o *RunOptions) hasHelmRelease(releaseName string) (bool, error) {
 	c := util.Command{
 		Name: "helm",
 		Args: []string{"list", "--short"},
@@ -216,7 +216,7 @@ func (o *HelmBootOptions) hasHelmRelease(releaseName string) (bool, error) {
 }
 
 // Git lazily create a gitter if its not specified
-func (o *HelmBootOptions) Git() gits.Gitter {
+func (o *RunOptions) Git() gits.Gitter {
 	if o.Gitter == nil {
 		o.Gitter = gits.NewGitCLI()
 	}
@@ -224,7 +224,7 @@ func (o *HelmBootOptions) Git() gits.Gitter {
 }
 
 // findRequirementsAndGitURL tries to find the current boot configuration from the cluster
-func (o *HelmBootOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, string, error) {
+func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, string, error) {
 	if o.JXFactory == nil {
 		o.JXFactory = jxfactory.NewFactory()
 	}
@@ -275,7 +275,7 @@ func (o *HelmBootOptions) findRequirementsAndGitURL() (*config.RequirementsConfi
 	return requirements, gitURL, nil
 }
 
-func (o *HelmBootOptions) findGitURLFromDir() (string, error) {
+func (o *RunOptions) findGitURLFromDir() (string, error) {
 	dir := o.Dir
 	_, gitConfDir, err := o.Git().FindGitConfigDir(dir)
 	if err != nil {

@@ -10,6 +10,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/jx/pkg/auth"
+	"github.com/jenkins-x/jx/pkg/cmd/step/verify"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
@@ -105,6 +106,16 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 		}
 	}
 	return nil
+}
+
+// VerifyPreInstall verify the pre install of boot
+func (o *EnvFactory) VerifyPreInstall(disableVerifyPackages bool, dir string) error {
+	vo := verify.StepVerifyPreInstallOptions{}
+	vo.CommonOptions = o.JXAdapter().NewCommonOptions()
+	vo.Dir = dir
+	vo.DisableVerifyPackages = disableVerifyPackages
+	vo.NoSecretYAMLValidate = true
+	return vo.Run()
 }
 
 // PrintBootJobInstructions prints the instructions to run the installer

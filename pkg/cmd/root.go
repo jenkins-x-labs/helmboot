@@ -7,6 +7,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/show"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/step"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/upgrade"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/verify"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/spf13/cobra"
@@ -30,6 +31,7 @@ func Main() *cobra.Command {
 
 	cmd.AddCommand(common.SplitCommand(create.NewCmdCreate()))
 	cmd.AddCommand(common.SplitCommand(upgrade.NewCmdUpgrade()))
+	cmd.AddCommand(common.SplitCommand(verify.NewCmdVerify()))
 	cmd.AddCommand(common.SplitCommand(show.NewCmdShow()))
 	return cmd
 }
