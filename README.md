@@ -10,8 +10,6 @@ Helmboot is a small command line tool for System Administrators install / upgrad
 
 Helmboot is based on [helm 3.x](https://helm.sh/) and [helmfile](https://github.com/roboll/helmfile) under the covers.
 
-Helmboot uses the [Jenkins Operator](https://jenkinsci.github.io/kubernetes-operator/) to setup as many Jenkins servers are required in whatever namespaces via GitOps.
-
 ## Using Jenkins and / or Jenkins X
 
 You can choose whether to use purely Jenkins; purely Jenkins X or a combination of Jenkins and Jenkins X. You also have full flexibility in GitOps to decide which Apps are installed in which namespaces etc.
