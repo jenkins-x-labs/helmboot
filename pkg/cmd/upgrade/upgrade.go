@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/uuid"
-	"github.com/jenkins-x-labs/helmboot/pkg/cmd/create"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/envfactory"
+	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
+	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/upgrader"
 	"github.com/jenkins-x/go-scm/scm"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
@@ -49,29 +49,29 @@ var (
 	`)
 )
 
-// UpgradeOptions the options for viewing running PRs
+// UpgradeOptions the options for upgrading a cluster
 type UpgradeOptions struct {
 	envfactory.EnvFactory
+	NoCommit bool
 
 	OverrideRequirements config.RequirementsConfig
 	Namespace            string
 	GitCloneURL          string
 	InitialGitURL        string
 	Dir                  string
-	NoCommit             bool
 
 	// if we are modifing an existing git repository
 	gitRepositoryExisted bool
 	branchName           string
 }
 
-// NewCmdUpgrade creates a command object for the "create" command
+// NewCmdUpgrade creates a command object for the command
 func NewCmdUpgrade() (*cobra.Command, *UpgradeOptions) {
 	o := &UpgradeOptions{}
 
 	cmd := &cobra.Command{
 		Use:     "upgrade",
-		Short:   "Upgrades your Development environmentsgit repository to use helmfile and helm 3",
+		Short:   "Upgrades your Development environments git repository to use helmfile and helm 3",
 		Long:    upgradeLong,
 		Example: fmt.Sprintf(upgradeExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {
@@ -88,7 +88,7 @@ func (o *UpgradeOptions) AddUpgradeOptions(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.GitCloneURL, "git-url", "g", "", "The git repository to clone to upgrade")
 	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", common.DefaultBootHelmfileRepository, "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
 
-	create.AddGitRequirementsOptions(cmd, &o.OverrideRequirements)
+	reqhelpers.AddGitRequirementsOptions(cmd, &o.OverrideRequirements)
 
 	o.EnvFactory.AddFlags(cmd)
 }
@@ -110,7 +110,7 @@ func (o *UpgradeOptions) Run() error {
 	}
 
 	if o.gitRepositoryExisted {
-		err = o.createBranch(o.Gitter, dir)
+		o.branchName, err = githelpers.CreateBranch(o.Gitter, dir)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create git branch in %s", dir)
 		}
@@ -400,21 +400,6 @@ func (o *UpgradeOptions) gitCloneIfRequired(gitter gits.Gitter, devSource v1.Env
 		return "", errors.Wrapf(err, "failed to clone repository %s to directory: %s", gitURL, dir)
 	}
 	return dir, nil
-}
-
-func (o *UpgradeOptions) createBranch(gitter gits.Gitter, dir string) error {
-	o.branchName = fmt.Sprintf("pr-%s", uuid.New().String())
-	gitRef := o.branchName
-	err := gitter.CreateBranch(dir, o.branchName)
-	if err != nil {
-		return errors.Wrapf(err, "create branch %s from %s", o.branchName, gitRef)
-	}
-
-	err = gitter.Checkout(dir, o.branchName)
-	if err != nil {
-		return errors.Wrapf(err, "checkout branch %s", o.branchName)
-	}
-	return nil
 }
 
 // replacePipeline if the `jenkins-x.yml` file is missing or does use the helm 3 / helmfile style configuration
