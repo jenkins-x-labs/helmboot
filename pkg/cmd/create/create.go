@@ -94,14 +94,9 @@ func (o *CreateOptions) Run() error {
 
 	log.Logger().Infof("created git source at %s", util.ColorInfo(dir))
 
-	changes, err := githelpers.AddAndCommitFiles(o.Gitter, dir, "fix: initial code")
+	_, err = githelpers.AddAndCommitFiles(o.Gitter, dir, "fix: initial code")
 	if err != nil {
 		return err
-	}
-
-	if !changes {
-		log.Logger().Warnf("no changes made")
-		return nil
 	}
 	return o.EnvFactory.CreateDevEnvGitRepository(dir)
 }
