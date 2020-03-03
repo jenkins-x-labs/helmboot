@@ -66,6 +66,7 @@ func NewCmdVerify() (*cobra.Command, *VerifyOptions) {
 }
 
 func (o *VerifyOptions) AddVerifyOptions(cmd *cobra.Command) {
+	cmd.Flags().BoolVarP(&o.BatchMode, "batch-mode", "b", false, "Enables batch mode which avoids prompting for user input")
 	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to clone the git repository. If no directory is specified a temporary directory will be used")
 	cmd.Flags().StringVarP(&o.GitCloneURL, "git-url", "", "", "The git repository to clone to upgrade")
 
