@@ -12,7 +12,8 @@ const (
 
 	// LocalSecret the name of the Kubernetes Secret used to load/store the
 	// secrets
-	LocalSecret = "helmboot-secrets"
+	/* #nosec */
+	LocalSecret = "jx-boot-secrets"
 
 	// LocalSecretKey the key in the local Secret to store the YAML secrets
 	LocalSecretKey = "secrets.yaml"
