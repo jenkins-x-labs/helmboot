@@ -91,7 +91,7 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 	if err != nil {
 		return err
 	}
-	err = o.pushToRepository(dir, repo, userAuth)
+	err = o.PushToGit(repo.Clone, userAuth, dir)
 	if err != nil {
 		return errors.Wrap(err, "failed to push to the git repository")
 	}
@@ -129,9 +129,8 @@ func (o *EnvFactory) PrintBootJobInstructions(requirements *config.RequirementsC
 	return nil
 }
 
-func (o *EnvFactory) pushToRepository(dir string, repo *scm.Repository, userAuth *auth.UserAuth) error {
-	cloneURL := repo.Clone
-
+// PushToGit pushes to the git repository
+func (o *EnvFactory) PushToGit(cloneURL string, userAuth *auth.UserAuth, dir string) error {
 	forkPushURL, err := o.Gitter.CreateAuthenticatedURL(cloneURL, userAuth)
 	if err != nil {
 		return errors.Wrapf(err, "creating push URL for %s", cloneURL)
