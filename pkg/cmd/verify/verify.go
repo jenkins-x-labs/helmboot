@@ -1,6 +1,7 @@
 package verify
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/envfactory"
 	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
+	"github.com/jenkins-x/jx/pkg/auth"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/jenkins-x/jx/pkg/config"
@@ -103,13 +105,48 @@ func (o *VerifyOptions) Run() error {
 		return nil
 	}
 
-	remote := "origin"
-	err = o.Gitter.Push(dir, remote, false)
+	err = o.pushToGit(err, dir)
 	if err != nil {
-		return errors.Wrapf(err, "failed to push to remote %s from dir %s", remote, dir)
+		return err
 	}
 
 	log.Logger().Infof("pushed requirements changes to %s", util.ColorInfo(o.GitCloneURL))
+	return nil
+}
+
+func (o *VerifyOptions) pushToGit(err error, dir string) error {
+	gitURL := o.GitCloneURL
+	gitInfo, err := gits.ParseGitURL(gitURL)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse git URL")
+	}
+
+	serverURL := gitInfo.HostURLWithoutUser()
+	owner := gitInfo.Organisation
+	kind, err := o.findGitKind(serverURL)
+	if err != nil {
+		return err
+	}
+
+	scmClient, token, err := o.EnvFactory.JXAdapter().ScmClient(serverURL, owner, kind)
+	if err != nil {
+		return errors.Wrapf(err, "failed to create SCM client for %s", gitURL)
+	}
+	o.ScmClient = scmClient
+
+	user, _, err := scmClient.Users.Find(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "failed to find the current SCM user")
+	}
+
+	userAuth := &auth.UserAuth{
+		Username: user.Login,
+		ApiToken: token,
+	}
+	err = o.PushToGit(gitURL, userAuth, dir)
+	if err != nil {
+		return errors.Wrap(err, "failed to push to the git repository")
+	}
 	return nil
 }
 
@@ -142,4 +179,15 @@ func (o *VerifyOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
 		return "", errors.Wrapf(err, "failed to clone repository %s to directory: %s", gitURL, dir)
 	}
 	return dir, nil
+}
+
+func (o *VerifyOptions) findGitKind(gitServerURL string) (string, error) {
+	kind := o.OverrideRequirements.Cluster.GitKind
+	if kind == "" {
+		kind = gits.SaasGitKind(gitServerURL)
+		if kind == "" {
+			return "", util.MissingOption("git-kind")
+		}
+	}
+	return kind, nil
 }
