@@ -105,7 +105,7 @@ func (o *VerifyOptions) Run() error {
 		return nil
 	}
 
-	err = o.pushToGit(err, dir)
+	err = o.pushToGit(dir)
 	if err != nil {
 		return err
 	}
@@ -114,7 +114,7 @@ func (o *VerifyOptions) Run() error {
 	return nil
 }
 
-func (o *VerifyOptions) pushToGit(err error, dir string) error {
+func (o *VerifyOptions) pushToGit(dir string) error {
 	gitURL := o.GitCloneURL
 	gitInfo, err := gits.ParseGitURL(gitURL)
 	if err != nil {
