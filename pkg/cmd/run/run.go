@@ -118,7 +118,7 @@ func (o *RunOptions) RunBootJob() error {
 	}
 
 	installerGitURL := "https://github.com/jenkins-x-labs/jenkins-x-installer.git"
-	log.Logger().Infof("cloning %s to %s", installerGitURL, tempDir)
+	log.Logger().Debugf("cloning %s to %s", installerGitURL, tempDir)
 	err = o.Git().Clone(installerGitURL, tempDir)
 	if err != nil {
 		return errors.Wrapf(err, "failed to git clone %s to dir %s", installerGitURL, tempDir)

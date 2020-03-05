@@ -173,7 +173,7 @@ func (o *VerifyOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
 		}
 	}
 
-	log.Logger().Infof("cloning %s to directory %s", util.ColorInfo(gitURL), util.ColorInfo(dir))
+	log.Logger().Debugf("cloning %s to directory %s", util.ColorInfo(gitURL), util.ColorInfo(dir))
 
 	err = gitter.Clone(gitURL, dir)
 	if err != nil {

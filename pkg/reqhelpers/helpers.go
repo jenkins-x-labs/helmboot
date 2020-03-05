@@ -94,7 +94,7 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 		return nil, errors.Wrap(err, "failed to create temp dir")
 	}
 
-	log.Logger().Infof("cloning %s to %s", gitURL, tempDir)
+	log.Logger().Debugf("cloning %s to %s", gitURL, tempDir)
 
 	gitter := gits.NewGitCLI()
 	err = gitter.Clone(gitURL, tempDir)
