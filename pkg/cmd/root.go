@@ -31,7 +31,7 @@ func Main() *cobra.Command {
 
 	cmd.AddCommand(common.SplitCommand(create.NewCmdCreate()))
 	cmd.AddCommand(common.SplitCommand(upgrade.NewCmdUpgrade()))
-	cmd.AddCommand(common.SplitCommand(verify.NewCmdVerify()))
+	cmd.AddCommand(verify.NewCmdVerify())
 	cmd.AddCommand(common.SplitCommand(show.NewCmdShow()))
 	return cmd
 }

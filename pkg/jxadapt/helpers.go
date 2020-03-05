@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakeclientsfactory"
+	"github.com/jenkins-x-labs/helmboot/pkg/gitconfig"
 	"github.com/jenkins-x/go-scm/scm"
 	"github.com/jenkins-x/go-scm/scm/factory"
 	"github.com/jenkins-x/jx/pkg/auth"
@@ -20,6 +21,7 @@ type JXAdapter struct {
 	JXFactory jxfactory.Factory
 	Gitter    gits.Gitter
 	BatchMode bool
+	gitConfig gitconfig.Context
 }
 
 // NewJXAdapter creates a new adapter
@@ -60,13 +62,27 @@ func (a *JXAdapter) NewCommonOptions() *opts.CommonOptions {
 
 // ScmClient creates a new Scm client for the given git server, owner and kind
 func (a *JXAdapter) ScmClient(serverURL string, owner string, kind string) (*scm.Client, string, error) {
-	token, defaultKind, err := a.FindGitTokenForServer(serverURL, owner)
-	if err != nil {
-		return nil, token, err
+	token := ""
+	if kind == "" || kind == "github" {
+		kind = "github"
+		if a.gitConfig == nil {
+			a.gitConfig = gitconfig.New()
+		}
+		var err error
+		token, err = a.gitConfig.AuthToken()
+		if err != nil {
+			return nil, token, err
+		}
 	}
-
-	if kind == "" {
-		kind = defaultKind
+	if token == "" {
+		t, defaultKind, err := a.findGitTokenForServer(serverURL, owner)
+		if err != nil {
+			return nil, t, err
+		}
+		token = t
+		if kind == "" {
+			kind = defaultKind
+		}
 	}
 	client, err := factory.NewClient(kind, serverURL, token)
 	return client, token, err
@@ -76,7 +92,7 @@ func (a *JXAdapter) ScmClient(serverURL string, owner string, kind string) (*scm
 func (a *JXAdapter) ScmClientForRepository(gitInfo *gits.GitRepository) (*scm.Client, string, error) {
 	serverURL := gitInfo.HostURLWithoutUser()
 
-	token, kind, err := a.FindGitTokenForServer(serverURL, gitInfo.Organisation)
+	token, kind, err := a.findGitTokenForServer(serverURL, gitInfo.Organisation)
 	if err != nil {
 		return nil, token, err
 	}
@@ -85,8 +101,8 @@ func (a *JXAdapter) ScmClientForRepository(gitInfo *gits.GitRepository) (*scm.Cl
 	return client, token, err
 }
 
-// FindGitTokenForServer finds the git token and kind for the given server URL
-func (a *JXAdapter) FindGitTokenForServer(serverURL string, owner string) (string, string, error) {
+// findGitTokenForServer finds the git token and kind for the given server URL
+func (a *JXAdapter) findGitTokenForServer(serverURL string, owner string) (string, string, error) {
 	co := a.NewCommonOptions()
 	authSvc, err := co.GitLocalAuthConfigService()
 	token := ""
