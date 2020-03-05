@@ -71,7 +71,7 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 		return err
 	}
 
-	scmClient, token, err := o.JXAdapter().ScmClient(cr.GitServer, cr.Owner, cr.GitKind)
+	scmClient, token, err := o.CreateScmClient(cr.GitServer, cr.Owner, cr.GitKind)
 	if err != nil {
 		return errors.Wrapf(err, "failed to create SCM client for server %s", cr.GitServer)
 	}
@@ -106,6 +106,11 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 		}
 	}
 	return nil
+}
+
+// CreateScmClient creates a new scm client
+func (o *EnvFactory) CreateScmClient(gitServer, owner, gitKind string) (*scm.Client, string, error) {
+	return o.JXAdapter().ScmClient(gitServer, owner, gitKind)
 }
 
 // VerifyPreInstall verify the pre install of boot
