@@ -159,4 +159,4 @@ lint: ## Lint the code
 	./hack/generate.sh
 
 .PHONY: all
-all: fmt build lint test
+all: fmt build test lint
