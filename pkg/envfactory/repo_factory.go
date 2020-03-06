@@ -2,8 +2,10 @@ package envfactory
 
 import (
 	"context"
+	"strings"
 
 	"github.com/jenkins-x/go-scm/scm"
+	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
@@ -38,7 +40,17 @@ func (r *CreateRepository) ConfirmValues(batch bool, handles util.IOFileHandles)
 		return err
 	}
 
-	r.Owner, err = util.PickValue("git owner (user/organisaation) for the new git repository:", r.Owner, true, "", handles)
+	saasGitKind := gits.SaasGitKind(r.GitServer)
+	if saasGitKind != "" {
+		r.GitKind = saasGitKind
+	} else {
+		r.GitKind, err = util.PickValue("git kind for the new git repository:", r.GitKind, true, "", handles)
+		if err != nil {
+			return err
+		}
+	}
+
+	r.Owner, err = util.PickValue("git owner (user/organization) for the new git repository:", r.Owner, true, "", handles)
 	if err != nil {
 		return err
 	}
@@ -95,7 +107,9 @@ func (r *CreateRepository) FullName() string {
 
 func IsScmNotFound(err error) bool {
 	if err != nil {
-		return err.Error() == scm.ErrNotFound.Error()
+		// I think that we should instead rely on the http status (404)
+		// until jenkins-x go-scm is updated t return that in the error this works for github and gitlab
+		return strings.Contains(err.Error(), scm.ErrNotFound.Error())
 	}
 	return false
 }
