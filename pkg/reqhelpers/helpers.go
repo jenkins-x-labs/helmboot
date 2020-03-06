@@ -36,7 +36,7 @@ func GetDevEnvironmentConfig(requirements *config.RequirementsConfig) *config.En
 }
 
 // GetBootJobCommand returns the boot job command
-func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string, chartName string) util.Command {
+func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string, chartName string, version string) util.Command {
 	args := []string{"install", "jx-boot"}
 
 	clusterName := requirements.Cluster.ClusterName
@@ -46,6 +46,9 @@ func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string, c
 
 	if gitURL != "" {
 		args = append(args, "--set", fmt.Sprintf("boot.bootGitURL=%s", gitURL))
+	}
+	if version != "" {
+		args = append(args, "--version", version)
 	}
 	args = append(args, chartName)
 

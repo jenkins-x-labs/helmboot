@@ -9,6 +9,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/helmer"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
+	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x/jx/pkg/cmd/boot"
 	"github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -20,6 +21,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/jenkins-x/jx/pkg/versionstream"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -127,7 +129,12 @@ func (o *RunOptions) RunBootJob() error {
 		log.Logger().Debugf("failed to delete the old jx-boot chart: %s", err.Error())
 	}
 
-	// TODO do we need to add the helm repository for jx-labs
+	err = o.verifyBootSecret(requirements)
+	if err != nil {
+		return err
+	}
+
+	// lets add helm repository for jx-labs
 	h := helmer.NewHelmCLI(o.Dir)
 	_, err = helmer.AddHelmRepoIfMissing(h, helmer.LabsChartRepository, "jx-labs", "", "")
 	if err != nil {
@@ -138,7 +145,12 @@ func (o *RunOptions) RunBootJob() error {
 		log.Logger().Warnf("failed to update helm repositories: %s", err.Error())
 	}
 
-	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName)
+	version, err := o.findChartVersion(requirements)
+	if err != nil {
+		return err
+	}
+
+	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName, version)
 
 	commandLine := fmt.Sprintf("%s %s", c.Name, strings.Join(c.Args, " "))
 
@@ -227,7 +239,6 @@ func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, st
 	}
 	if o.GitURL != "" {
 		gitURL = o.GitURL
-
 		if requirements == nil {
 			requirements, err = reqhelpers.GetRequirementsFromGit(gitURL)
 			if err != nil {
@@ -264,6 +275,71 @@ func (o *RunOptions) findGitURLFromDir() (string, error) {
 		return "", fmt.Errorf("no .git directory could be found from dir %s", dir)
 	}
 	return o.Git().DiscoverUpstreamGitURL(gitConfDir)
+}
+
+func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
+	kubeClient, ns, err := o.JXFactory.CreateKubeClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to create kube client")
+	}
+
+	reqNs := requirements.Cluster.Namespace
+	if reqNs != "" && reqNs != ns {
+		return errors.Errorf("you are currently in the %s namespace but this cluster needs to be booted in namespace %s. please use 'jx ns %s' to switch namespace", ns, reqNs, reqNs)
+	}
+
+	name := secretmgr.LocalSecret
+	secret, err := kubeClient.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			warnNoSecret(ns, name)
+			return fmt.Errorf("boot secret %s not found in namespace %s. are you sure you are running this command in the right namespace and cluster", name, ns)
+		}
+		warnNoSecret(ns, name)
+		return errors.Wrapf(err, "failed to look for boot secret %s  in namespace %s", name, ns)
+	}
+
+	if secret == nil {
+		return fmt.Errorf("null boot secret %s found in namespace %s. are you sure you are running this command in the right namespace and cluster", name, ns)
+	}
+
+	key := "secrets.yaml"
+	found := false
+	if secret.Data != nil {
+		data := secret.Data[key]
+		if len(data) > 0 {
+			found = true
+		}
+	}
+	if !found {
+		return fmt.Errorf("boot secret %s in namespace %s does not contain key: %s", name, ns, key)
+	}
+	return nil
+}
+
+func (o *RunOptions) findChartVersion(req *config.RequirementsConfig) (string, error) {
+	if o.ChartName == "" || o.ChartName[0] == '.' || o.ChartName[0] == '/' || o.ChartName[0] == '\\' || strings.Count(o.ChartName, "/") > 1 {
+		// relative chart folder so ignore version
+		return "", nil
+	}
+
+	f := clients.NewFactory()
+	co := opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
+	co.BatchMode = o.BatchMode
+
+	u := req.VersionStream.URL
+	ref := req.VersionStream.Ref
+	version, err := co.GetVersionNumber(versionstream.KindChart, o.ChartName, u, ref)
+	if err != nil {
+		return version, errors.Wrapf(err, "failed to find version of chart %s in version stream %s ref %s", o.ChartName, u, ref)
+	}
+	return version, nil
+}
+
+func warnNoSecret(ns, name string) {
+	log.Logger().Warnf("boot secret %s not found in namespace %s\n", name, ns)
+	log.Logger().Infof("Are you running in the correct namespace? To change namespaces see:     %s", util.ColorInfo("https://jenkins-x.io/docs/using-jx/developing/kube-context/"))
+	log.Logger().Infof("Did you remember to import or edit the secrets before running boot? see %s", util.ColorInfo("https://jenkins-x.io/docs/labs/boot/getting-started/secrets/"))
 }
 
 // IsInCluster tells if we are running incluster

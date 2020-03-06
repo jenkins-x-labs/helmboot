@@ -59,6 +59,7 @@ type UpgradeOptions struct {
 	GitCloneURL          string
 	InitialGitURL        string
 	Dir                  string
+	UsePullRequest       bool
 
 	// if we are modifing an existing git repository
 	gitRepositoryExisted bool
@@ -87,6 +88,7 @@ func (o *UpgradeOptions) AddUpgradeOptions(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Dir, "dir", "d", "", "The directory used to create/clone the development git repository. If no directory is specified a temporary directory will be used")
 	cmd.Flags().StringVarP(&o.GitCloneURL, "git-url", "g", "", "The git repository to clone to upgrade")
 	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", common.DefaultBootHelmfileRepository, "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
+	cmd.Flags().BoolVarP(&o.UsePullRequest, "use-pr", "", false, "If enabled lets force the use of a Pull Request rather than creating a new git repository for the helm 3 based configuration")
 
 	reqhelpers.AddGitRequirementsOptions(cmd, &o.OverrideRequirements)
 
@@ -147,7 +149,7 @@ func (o *UpgradeOptions) Run() error {
 		return errors.Wrapf(err, "failed to add files to git")
 	}
 
-	if o.gitRepositoryExisted {
+	if o.gitRepositoryExisted && o.UsePullRequest {
 		o.OutDir = dir
 		if !o.NoCommit {
 			err = o.Gitter.CommitIfChanges(dir, "fix: helmboot upgrader\n\nmigrating resources across to the latest Jenkins X GitOps source code")
