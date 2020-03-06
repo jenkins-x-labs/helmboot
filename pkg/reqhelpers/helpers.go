@@ -36,7 +36,7 @@ func GetDevEnvironmentConfig(requirements *config.RequirementsConfig) *config.En
 }
 
 // GetBootJobCommand returns the boot job command
-func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string) util.Command {
+func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string, chartName string) util.Command {
 	args := []string{"install", "jx-boot"}
 
 	clusterName := requirements.Cluster.ClusterName
@@ -47,7 +47,7 @@ func GetBootJobCommand(requirements *config.RequirementsConfig, gitURL string) u
 	if gitURL != "" {
 		args = append(args, "--set", fmt.Sprintf("boot.bootGitURL=%s", gitURL))
 	}
-	args = append(args, ".")
+	args = append(args, chartName)
 
 	return util.Command{
 		Name: "helm",
@@ -94,7 +94,7 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 		return nil, errors.Wrap(err, "failed to create temp dir")
 	}
 
-	log.Logger().Infof("cloning %s to %s", gitURL, tempDir)
+	log.Logger().Debugf("cloning %s to %s", gitURL, tempDir)
 
 	gitter := gits.NewGitCLI()
 	err = gitter.Clone(gitURL, tempDir)
@@ -300,4 +300,5 @@ func AddGitRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig)
 	cmd.Flags().StringVarP(&r.Cluster.GitName, "git-name", "", "", "the name of the git repository")
 	cmd.Flags().StringVarP(&r.Cluster.GitServer, "git-server", "", "", "the git server host such as https://github.com or https://gitlab.com")
 	cmd.Flags().StringVarP(&r.Cluster.EnvironmentGitOwner, "env-git-owner", "", "", "the git owner (organisation or user) used to own the git repositories for the environments")
+	cmd.Flags().StringArrayVarP(&r.Cluster.DevEnvApprovers, "approver", "", nil, "the git user names of the approvers for the environments")
 }

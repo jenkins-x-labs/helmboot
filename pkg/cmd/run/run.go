@@ -2,11 +2,11 @@ package run
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
+	"github.com/jenkins-x-labs/helmboot/pkg/helmer"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x/jx/pkg/cmd/boot"
@@ -32,6 +32,7 @@ type RunOptions struct {
 	boot.BootOptions
 	JXFactory jxfactory.Factory
 	Gitter    gits.Gitter
+	ChartName string
 	BatchMode bool
 	JobMode   bool
 }
@@ -51,6 +52,10 @@ var (
 `)
 )
 
+const (
+	defaultChartName = "jx-labs/jxl-boot"
+)
+
 // NewCmdRun creates the new command
 func NewCmdRun() *cobra.Command {
 	options := RunOptions{}
@@ -68,6 +73,7 @@ func NewCmdRun() *cobra.Command {
 	command.Flags().StringVarP(&options.Dir, "dir", "d", ".", "the directory to look for the Jenkins X Pipeline, requirements and charts")
 	command.Flags().StringVarP(&options.GitURL, "git-url", "u", "", "override the Git clone URL for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-ref as well")
 	command.Flags().StringVarP(&options.GitRef, "git-ref", "", "master", "override the Git ref for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-url as well")
+	command.Flags().StringVarP(&options.ChartName, "chart", "c", defaultChartName, "the chart name to use to install the boot Job")
 	command.Flags().StringVarP(&options.VersionStreamURL, "versions-repo", "", common.DefaultVersionsURL, "the bootstrap URL for the versions repo. Once the boot config is cloned, the repo will be then read from the jx-requirements.yml")
 	command.Flags().StringVarP(&options.VersionStreamRef, "versions-ref", "", common.DefaultVersionsRef, "the bootstrap ref for the versions repo. Once the boot config is cloned, the repo will be then read from the jx-requirements.yml")
 	command.Flags().StringVarP(&options.HelmLogLevel, "helm-log", "v", "", "sets the helm logging level from 0 to 9. Passed into the helm CLI via the '-v' argument. Useful to diagnose helm related issues")
@@ -111,38 +117,24 @@ func (o *RunOptions) RunBootJob() error {
 	clusterName := requirements.Cluster.ClusterName
 	log.Logger().Infof("running helmboot Job for cluster %s with git URL %s", util.ColorInfo(clusterName), util.ColorInfo(gitURL))
 
-	// TODO while the chart is released lets do a local clone....
-	tempDir, err := ioutil.TempDir("", "jx-boot-")
+	log.Logger().Debug("deleting the old jx-boot chart ...")
+	c := util.Command{
+		Name: "helm",
+		Args: []string{"delete", "jx-boot"},
+	}
+	_, err = c.RunWithoutRetry()
 	if err != nil {
-		return errors.Wrap(err, "failed to create temp dir")
+		log.Logger().Debugf("failed to delete the old jx-boot chart: %s", err.Error())
 	}
 
-	installerGitURL := "https://github.com/jenkins-x-labs/jenkins-x-installer.git"
-	log.Logger().Infof("cloning %s to %s", installerGitURL, tempDir)
-	err = o.Git().Clone(installerGitURL, tempDir)
+	// TODO do we need to add the helm repository for jx-labs
+	h := helmer.NewHelmCLI(o.Dir)
+	_, err = helmer.AddHelmRepoIfMissing(h, helmer.LabsChartRepository, "jx-labs", "", "")
 	if err != nil {
-		return errors.Wrapf(err, "failed to git clone %s to dir %s", installerGitURL, tempDir)
+		return errors.Wrap(err, "failed to add Jenkins X Labs chart repository")
 	}
 
-	flag, err := o.hasHelmRelease("jx-boot")
-	if err != nil {
-		return err
-	}
-	if flag {
-		log.Logger().Info("uninstalling old jx-boot chart ...")
-		c := util.Command{
-			Dir:  tempDir,
-			Name: "helm",
-			Args: []string{"uninstall", "jx-boot"},
-		}
-		_, err = c.RunWithoutRetry()
-		if err != nil {
-			return errors.Wrapf(err, "failed to remove old jx-boot chart")
-		}
-	}
-
-	c := reqhelpers.GetBootJobCommand(requirements, gitURL)
-	c.Dir = tempDir
+	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName)
 
 	commandLine := fmt.Sprintf("%s %s", c.Name, strings.Join(c.Args, " "))
 
@@ -195,24 +187,6 @@ func (o *RunOptions) tailJobLogs() error {
 		}
 		log.Logger().Warnf("Job pod %s is not completed but has status: %s", pod, kube.PodStatus(podResource))
 	}
-}
-
-func (o *RunOptions) hasHelmRelease(releaseName string) (bool, error) {
-	c := util.Command{
-		Name: "helm",
-		Args: []string{"list", "--short"},
-	}
-	text, err := c.RunWithoutRetry()
-	if err != nil {
-		return false, errors.Wrap(err, "failed to run: helm list")
-	}
-	lines := strings.Split(strings.TrimSpace(text), "\n")
-	for _, line := range lines {
-		if strings.TrimSpace(line) == releaseName {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // Git lazily create a gitter if its not specified

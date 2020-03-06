@@ -14,6 +14,7 @@ require (
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/serving v0.7.0
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/petergtz/pegomock v2.7.0+incompatible
 	github.com/pkg/errors v0.8.1
 	github.com/spf13/cobra v0.0.6
 	github.com/stretchr/testify v1.4.0
@@ -24,6 +25,7 @@ require (
 	k8s.io/apiextensions-apiserver v0.0.0-20190718185103-d1ef975d28ce
 	k8s.io/apimachinery v0.0.0-20190703205208-4cfb76a8bf76
 	k8s.io/client-go v11.0.1-0.20190409021438-1a26190bd76a+incompatible
+	k8s.io/kubernetes v1.11.3
 	k8s.io/metrics v0.0.0-20180620010437-b11cf31b380b
 	k8s.io/test-infra v0.0.0-20190131093439-a22cef183a8f
 	sigs.k8s.io/yaml v1.1.0

@@ -43,7 +43,10 @@ func setupConfigFile(filename string) (*configEntry, error) {
 
 	fmt.Fprintln(os.Stderr, "Notice: authentication required")
 	fmt.Fprintf(os.Stderr, "Press Enter to open %s in your browser... ", flow.Hostname)
-	waitForEnter(os.Stdin)
+	err := waitForEnter(os.Stdin)
+	if err != nil {
+		return nil, err
+	}
 	token, err := flow.ObtainAccessToken()
 	if err != nil {
 		return nil, err
@@ -79,12 +82,13 @@ func setupConfigFile(filename string) (*configEntry, error) {
 	if err == nil && n < len(yamlData) {
 		err = io.ErrShortWrite
 	}
-
 	if err == nil {
 		fmt.Fprintln(os.Stderr, "Authentication complete. Press Enter to continue... ")
-		waitForEnter(os.Stdin)
+		err := waitForEnter(os.Stdin)
+		if err != nil {
+			return &entry, err
+		}
 	}
-
 	return &entry, err
 }
 
