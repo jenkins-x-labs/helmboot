@@ -65,13 +65,15 @@ func (a *JXAdapter) ScmClient(serverURL string, owner string, kind string) (*scm
 	token := ""
 	if kind == "" || kind == "github" {
 		kind = "github"
-		if a.gitConfig == nil {
-			a.gitConfig = gitconfig.New()
-		}
-		var err error
-		token, err = a.gitConfig.AuthToken()
-		if err != nil {
-			return nil, token, err
+		if !a.BatchMode {
+			if a.gitConfig == nil {
+				a.gitConfig = gitconfig.New()
+			}
+			var err error
+			token, err = a.gitConfig.AuthToken()
+			if err != nil {
+				return nil, token, err
+			}
 		}
 	}
 	if token == "" {
