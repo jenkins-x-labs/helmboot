@@ -300,4 +300,5 @@ func AddGitRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig)
 	cmd.Flags().StringVarP(&r.Cluster.GitName, "git-name", "", "", "the name of the git repository")
 	cmd.Flags().StringVarP(&r.Cluster.GitServer, "git-server", "", "", "the git server host such as https://github.com or https://gitlab.com")
 	cmd.Flags().StringVarP(&r.Cluster.EnvironmentGitOwner, "env-git-owner", "", "", "the git owner (organisation or user) used to own the git repositories for the environments")
+	cmd.Flags().StringArrayVarP(&r.Cluster.DevEnvApprovers, "approver", "", nil, "the git user names of the approvers for the environments")
 }
