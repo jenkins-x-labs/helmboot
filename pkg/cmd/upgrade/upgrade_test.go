@@ -68,6 +68,8 @@ func TestUpgrade(t *testing.T) {
 			uo.RepoName = "dummy"
 			uo.OverrideRequirements.Cluster.GitKind = "fake"
 			uo.OverrideRequirements.Cluster.GitServer = "https://fake.com"
+		} else {
+			uo.UsePullRequest = true
 		}
 		err = uo.Run()
 		require.NoError(t, err, "failed to upgrade repository")
