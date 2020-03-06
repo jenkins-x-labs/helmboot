@@ -1,5 +1,6 @@
 package helmer
 
+// ChartSummary contains a chart summary
 type ChartSummary struct {
 	Name         string
 	ChartVersion string
