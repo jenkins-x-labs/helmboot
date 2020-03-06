@@ -2,6 +2,7 @@ package envfactory
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	"github.com/jenkins-x/go-scm/scm"
@@ -44,7 +45,8 @@ func (r *CreateRepository) ConfirmValues(batch bool, handles util.IOFileHandles)
 	if saasGitKind != "" {
 		r.GitKind = saasGitKind
 	} else {
-		r.GitKind, err = util.PickValue("git kind for the new git repository:", r.GitKind, true, "", handles)
+		message := fmt.Sprintf("kind of the git server (%s):", r.GitServer)
+		r.GitKind, err = util.PickNameWithDefault(gits.KindGits, message, r.GitKind, "we need to know what kind of git provider this server is so we know what kind of REST API to use", handles)
 		if err != nil {
 			return err
 		}
