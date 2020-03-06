@@ -21,6 +21,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
+	"github.com/jenkins-x/jx/pkg/versionstream"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -144,7 +145,12 @@ func (o *RunOptions) RunBootJob() error {
 		log.Logger().Warnf("failed to update helm repositories: %s", err.Error())
 	}
 
-	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName)
+	version, err := o.findChartVersion(requirements)
+	if err != nil {
+		return err
+	}
+
+	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName, version)
 
 	commandLine := fmt.Sprintf("%s %s", c.Name, strings.Join(c.Args, " "))
 
@@ -233,7 +239,6 @@ func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, st
 	}
 	if o.GitURL != "" {
 		gitURL = o.GitURL
-
 		if requirements == nil {
 			requirements, err = reqhelpers.GetRequirementsFromGit(gitURL)
 			if err != nil {
@@ -310,6 +315,25 @@ func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) e
 		return fmt.Errorf("boot secret %s in namespace %s does not contain key: %s", name, ns, key)
 	}
 	return nil
+}
+
+func (o *RunOptions) findChartVersion(req *config.RequirementsConfig) (string, error) {
+	if o.ChartName == "" || o.ChartName[0] == '.' || o.ChartName[0] == '/' || o.ChartName[0] == '\\' || strings.Count(o.ChartName, "/") > 1 {
+		// relative chart folder so ignore version
+		return "", nil
+	}
+
+	f := clients.NewFactory()
+	co := opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
+	co.BatchMode = o.BatchMode
+
+	u := req.VersionStream.URL
+	ref := req.VersionStream.Ref
+	version, err := co.GetVersionNumber(versionstream.KindChart, o.ChartName, u, ref)
+	if err != nil {
+		return version, errors.Wrapf(err, "failed to find version of chart %s in version stream %s ref %s", o.ChartName, u, ref)
+	}
+	return version, nil
 }
 
 func warnNoSecret(ns, name string) {
