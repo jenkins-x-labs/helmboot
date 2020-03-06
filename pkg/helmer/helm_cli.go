@@ -102,7 +102,7 @@ func (h *HelmCLI) Init(clientOnly bool, serviceAccount string, tillerNamespace s
 
 // AddRepo adds a new helm repo with the given name and URL
 func (h *HelmCLI) AddRepo(repoName, repoURL, username, password string) error {
-	args := []string{"repoName", "add", repoName, repoURL}
+	args := []string{"repo", "add", repoName, repoURL}
 	if username != "" {
 		args = append(args, "--username", username)
 	}
