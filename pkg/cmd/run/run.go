@@ -140,6 +140,7 @@ func (o *RunOptions) RunBootJob() error {
 	if err != nil {
 		return errors.Wrap(err, "failed to add Jenkins X Labs chart repository")
 	}
+	log.Logger().Infof("updating helm repositories")
 	err = h.UpdateRepo()
 	if err != nil {
 		log.Logger().Warnf("failed to update helm repositories: %s", err.Error())
