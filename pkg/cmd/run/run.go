@@ -369,13 +369,15 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
 		return errors.Wrapf(err, "failed to parse secrets YAML %s", yamlFile)
 	}
 
-	username := util.GetMapValueAsStringViaPath(yamlData, "pipelineUser.username")
+	username := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.username")
 	if username == "" {
-		return errors.Errorf("missing secret: pipelineUser.username")
+		log.Logger().Warnf("missing secret: secrets.pipelineUser.username")
+		return nil
 	}
-	token := util.GetMapValueAsStringViaPath(yamlData, "pipelineUser.token")
+	token := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.token")
 	if token == "" {
-		return errors.Errorf("missing secret: pipelineUser.username")
+		log.Logger().Warnf("missing secret: secrets.pipelineUser.token")
+		return nil
 	}
 
 	u.User = url.UserPassword(username, token)
