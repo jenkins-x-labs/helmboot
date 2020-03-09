@@ -2,6 +2,8 @@ package run
 
 import (
 	"fmt"
+	"io/ioutil"
+	"net/url"
 	"os"
 	"strings"
 
@@ -27,6 +29,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	"sigs.k8s.io/yaml"
 )
 
 // RunOptions contains the command line arguments for this command
@@ -102,6 +105,10 @@ func (o *RunOptions) Run() error {
 		f := clients.NewFactory()
 		bo.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
 		bo.BatchMode = o.BatchMode
+	}
+	err := o.addUserPasswordForPrivateGitClone()
+	if err != nil {
+		return err
 	}
 	return bo.Run()
 }
@@ -335,6 +342,45 @@ func (o *RunOptions) findChartVersion(req *config.RequirementsConfig) (string, e
 		return version, errors.Wrapf(err, "failed to find version of chart %s in version stream %s ref %s", o.ChartName, u, ref)
 	}
 	return version, nil
+}
+
+func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
+	if o.GitURL == "" {
+		log.Logger().Warnf("no git-url specified so cannot add the username/token")
+	}
+
+	u, err := url.Parse(o.GitURL)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse git URL %s", o.GitURL)
+	}
+
+	yamlFile := os.Getenv("JX_SECRETS_YAML")
+	if yamlFile == "" {
+		return errors.Errorf("no $JX_SECRETS_YAML defined")
+	}
+	data, err := ioutil.ReadFile(yamlFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load secrets YAML %s", yamlFile)
+	}
+
+	yamlData := map[string]interface{}{}
+	err = yaml.Unmarshal(data, &yamlData)
+	if err != nil {
+		return errors.Wrapf(err, "failed to parse secrets YAML %s", yamlFile)
+	}
+
+	username := util.GetMapValueAsStringViaPath(yamlData, "pipelineUser.username")
+	if username == "" {
+		return errors.Errorf("missing secret: pipelineUser.username")
+	}
+	token := util.GetMapValueAsStringViaPath(yamlData, "pipelineUser.token")
+	if token == "" {
+		return errors.Errorf("missing secret: pipelineUser.username")
+	}
+
+	u.User = url.UserPassword(username, token)
+	o.GitURL = u.String()
+	return nil
 }
 
 func warnNoSecret(ns, name string) {
