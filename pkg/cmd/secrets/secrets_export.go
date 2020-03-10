@@ -39,7 +39,7 @@ type ExportOptions struct {
 	Console bool
 }
 
-// NewCmdExport creates a command object for the "create" command
+// NewCmdExport creates a command object for the command
 func NewCmdExport() (*cobra.Command, *ExportOptions) {
 	o := &ExportOptions{}
 

@@ -32,13 +32,13 @@ type ImportOptions struct {
 	File string
 }
 
-// NewCmdImport creates a command object for the "create" command
+// NewCmdImport creates a command object for the command
 func NewCmdImport() (*cobra.Command, *ImportOptions) {
 	o := &ImportOptions{}
 
 	cmd := &cobra.Command{
 		Use:     "import",
-		Short:   "imports the secrets from the local file system",
+		Short:   "Imports the secrets from the local file system",
 		Long:    importLong,
 		Example: fmt.Sprintf(importExample, common.BinaryName),
 		Run: func(cmd *cobra.Command, args []string) {

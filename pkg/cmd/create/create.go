@@ -43,7 +43,7 @@ type CreateOptions struct {
 	Args                  []string
 }
 
-// NewCmdCreate creates a command object for the "create" command
+// NewCmdCreate creates a command object for the command
 func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 	o := &CreateOptions{}
 
