@@ -59,9 +59,9 @@ func (r *KindResolver) CreateSecretManager() (secretmgr.SecretManager, error) {
 }
 
 // VerifySecrets verifies that the secrets are valid
-func (o *KindResolver) VerifySecrets() error {
+func (r *KindResolver) VerifySecrets() error {
 	secretsYAML := ""
-	sm, err := o.CreateSecretManager()
+	sm, err := r.CreateSecretManager()
 	if err != nil {
 		return err
 	}
