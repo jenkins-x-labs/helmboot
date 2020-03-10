@@ -80,6 +80,7 @@ print-version: ## Print version
 	@echo $(VERSION)
 
 build: $(GO_DEPENDENCIES) clean ## Build jx-labs binary for current OS
+	go mod download
 	CGO_ENABLED=$(CGO_ENABLED) $(GO) $(BUILD_TARGET) $(BUILDFLAGS) -o build/$(NAME) $(MAIN_SRC_FILE)
 
 build-all: $(GO_DEPENDENCIES) build make-reports-dir ## Build all files - runtime, all tests etc.
