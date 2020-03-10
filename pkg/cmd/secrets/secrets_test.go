@@ -35,6 +35,7 @@ func TestImportExportCommands(t *testing.T) {
 
 	_, eo := secrets.NewCmdExport()
 	_, io := secrets.NewCmdImport()
+	_, vo := secrets.NewCmdVerify()
 
 	ns := "jx"
 	devEnv := kube.CreateDefaultDevEnvironment(ns)
@@ -51,6 +52,11 @@ func TestImportExportCommands(t *testing.T) {
 	f := fakejxfactory.NewFakeFactoryWithObjects(nil, jxObjects, ns)
 	eo.Factory = f
 	io.Factory = f
+	vo.Factory = f
+
+	err = vo.Run()
+	require.Errorf(t, err, "should have failed to verify secrets before they are imported")
+	t.Logf("caught expected error when no secrets yet: %s", err.Error())
 
 	fileName := tmpFile.Name()
 
@@ -74,4 +80,8 @@ func TestImportExportCommands(t *testing.T) {
 	require.NoError(t, err, "failed to read the exported secrets file %s", fileName)
 	actual := string(data)
 	assert.Equal(t, modifiedYaml, actual, "the re-exported secrets YAML")
+
+	err = vo.Run()
+	require.NoError(t, err, "should not have failed to to verify secrets after they are imported")
+
 }

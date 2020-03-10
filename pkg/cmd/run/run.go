@@ -330,6 +330,10 @@ func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) e
 		data := secret.Data[key]
 		if len(data) > 0 {
 			found = true
+			err := secretmgr.VerifyBootSecrets(string(data))
+			if err != nil {
+				return errors.Wrapf(err, "invalid secrets yaml in kubernetes secret %s in namespace %s. Please run 'jxl boot secrets edit' to populate them", name, ns)
+			}
 		}
 	}
 	if !found {

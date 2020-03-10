@@ -43,7 +43,7 @@ type StatusOptions struct {
 	JXFactory jxfactory.Factory
 }
 
-// NewCmdStatus creates a command object for the "create" command
+// NewCmdStatus creates a command object for the command
 func NewCmdStatus() (*cobra.Command, *StatusOptions) {
 	o := &StatusOptions{}
 

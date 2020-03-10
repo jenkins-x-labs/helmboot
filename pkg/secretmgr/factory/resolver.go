@@ -2,6 +2,7 @@ package factory
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
@@ -55,6 +56,30 @@ func (r *KindResolver) CreateSecretManager() (secretmgr.SecretManager, error) {
 		}
 	}
 	return NewSecretManager(r.Kind, r.Factory, requirements)
+}
+
+// VerifySecrets verifies that the secrets are valid
+func (o *KindResolver) VerifySecrets() error {
+	secretsYAML := ""
+	sm, err := o.CreateSecretManager()
+	if err != nil {
+		return err
+	}
+
+	cb := func(currentYAML string) (string, error) {
+		secretsYAML = currentYAML
+		return currentYAML, nil
+	}
+	err = sm.UpsertSecrets(cb, secretmgr.DefaultSecretsYaml)
+	if err != nil {
+		return errors.Wrapf(err, "failed to load Secrets YAML from secret manager %s", sm.String())
+	}
+
+	secretsYAML = strings.TrimSpace(secretsYAML)
+	if secretsYAML == "" {
+		return errors.Errorf("empty secrets YAML")
+	}
+	return secretmgr.VerifyBootSecrets(secretsYAML)
 }
 
 func (r *KindResolver) resolveKind(requirements *config.RequirementsConfig) (string, error) {

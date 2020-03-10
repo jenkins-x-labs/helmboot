@@ -20,7 +20,8 @@ func NewCmdSecrets() *cobra.Command {
 		},
 	}
 	command.AddCommand(common.SplitCommand(NewCmdEdit()))
-	command.AddCommand(common.SplitCommand(NewCmdImport()))
 	command.AddCommand(common.SplitCommand(NewCmdExport()))
+	command.AddCommand(common.SplitCommand(NewCmdImport()))
+	command.AddCommand(common.SplitCommand(NewCmdVerify()))
 	return command
 }
