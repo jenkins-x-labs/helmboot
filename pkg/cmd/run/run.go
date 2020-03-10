@@ -15,6 +15,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/cmd/boot"
 	"github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
+	"github.com/jenkins-x/jx/pkg/cmd/namespace"
 	"github.com/jenkins-x/jx/pkg/cmd/opts"
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/jenkins-x/jx/pkg/config"
@@ -293,7 +294,19 @@ func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) e
 
 	reqNs := requirements.Cluster.Namespace
 	if reqNs != "" && reqNs != ns {
-		return errors.Errorf("you are currently in the %s namespace but this cluster needs to be booted in namespace %s. please use 'jx ns %s' to switch namespace", ns, reqNs, reqNs)
+		log.Logger().Infof("switching to the deployment namespace %s as we currently are in the %s namespace", util.ColorInfo(reqNs), util.ColorInfo(ns))
+
+		f := clients.NewFactory()
+		no := &namespace.NamespaceOptions{}
+		no.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
+		no.BatchMode = o.BatchMode
+		no.Args = []string{reqNs}
+		err = no.Run()
+		if err != nil {
+			return errors.Wrapf(err, "failed to switch to namespace %s", reqNs)
+		}
+		log.Logger().Infof("switched to the %s namespace", reqNs)
+		ns = reqNs
 	}
 
 	name := secretmgr.LocalSecret
