@@ -5,6 +5,7 @@ import (
 
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
+	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,12 +20,21 @@ type LocalSecretManager struct {
 }
 
 // NewLocalSecretManager uses a Kubernetes Secret to manage secrets
-func NewLocalSecretManager(f jxfactory.Factory) (secretmgr.SecretManager, error) {
+func NewLocalSecretManager(f jxfactory.Factory, namespace string) (secretmgr.SecretManager, error) {
 	kubeClient, ns, err := f.CreateKubeClient()
 	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "failed to create Kube Client")
 	}
-	return &LocalSecretManager{KubeClient: kubeClient, Namespace: ns}, nil
+	if namespace == "" {
+		namespace = ns
+	}
+
+	// lets verify the namespace is created if it doesn't exist
+	err = kube.EnsureDevNamespaceCreatedWithoutEnvironment(kubeClient, namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to ensure dev namespace setup %s", namespace)
+	}
+	return &LocalSecretManager{KubeClient: kubeClient, Namespace: namespace}, nil
 }
 
 // UpsertSecrets upserts the secrets
