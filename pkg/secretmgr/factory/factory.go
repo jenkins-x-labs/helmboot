@@ -20,7 +20,7 @@ func NewSecretManager(kind string, f jxfactory.Factory, requirements *config.Req
 	switch kind {
 	case secretmgr.KindGoogleSecretManager:
 		// lets populate a local secret after importing/editing the google secret
-		l, err := local.NewLocalSecretManager(f)
+		l, err := local.NewLocalSecretManager(f, requirements.Cluster.Namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -30,7 +30,7 @@ func NewSecretManager(kind string, f jxfactory.Factory, requirements *config.Req
 		}
 		return proxy.NewProxySecretManager(g, l), nil
 	case secretmgr.KindLocal:
-		return local.NewLocalSecretManager(f)
+		return local.NewLocalSecretManager(f, requirements.Cluster.Namespace)
 	case secretmgr.KindFake:
 		return fake.NewFakeSecretManager(), nil
 	default:
