@@ -119,6 +119,10 @@ func TestCreate(t *testing.T) {
 			}
 			t.Logf("requirements.Environments[%d].RemoteCluster = %v for key %s ", i, e.RemoteCluster, e.Key)
 		}
+
+		if requirements.Cluster.Provider == "kind" {
+			assert.Equal(t, true, requirements.Ingress.IgnoreLoadBalancer, "dev requirements.Ingress.IgnoreLoadBalancer for test %s", tc.Name)
+		}
 	}
 }
 
