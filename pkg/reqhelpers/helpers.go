@@ -112,7 +112,7 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 	return requirements, nil
 }
 
-// OverrideRequirements
+// OverrideRequirements allows CLI overrides
 func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputRequirements *config.RequirementsConfig, flags *RequirementBools) error {
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
@@ -158,7 +158,7 @@ func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputR
 	return nil
 }
 
-// OverrideRequirements
+// ValidateApps validates the apps match the requirements
 func ValidateApps(dir string) (*config.AppConfig, string, error) {
 	requirements, _, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
