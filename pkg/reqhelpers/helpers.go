@@ -22,6 +22,7 @@ import (
 // RequirementBools for the boolean flags we only update if specified on the CLI
 type RequirementBools struct {
 	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote, GitOps, Kaniko, Terraform bool
+	ExternalDNS, TLS                                                                           bool
 	VaultRecreateBucket, VaultDisableURLDiscover                                               bool
 	Repository                                                                                 string
 }
@@ -177,10 +178,22 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 		if removeApp(apps, "jenkins-x/chartmuseum") {
 			modified = true
 		}
-		if addApp(apps, "jenkins-x/bucketrepo") {
+		if addApp(apps, "jenkins-x/bucketrepo", "repositories") {
 			modified = true
 		}
 	}
+
+	if shouldHaveCertManager(requirements) {
+		if addApp(apps, "jetstack/cert-manager", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+	if shouldHaveExternalDNS(requirements) {
+		if addApp(apps, "bitnami/externaldns", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+
 	if modified {
 		err = apps.SaveConfig(appsFileName)
 		if err != nil {
@@ -190,13 +203,21 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 	return apps, appsFileName, err
 }
 
-func addApp(apps *config.AppConfig, chartName string) bool {
+func shouldHaveCertManager(requirements *config.RequirementsConfig) bool {
+	return requirements.Ingress.TLS.Enabled && requirements.Ingress.TLS.SecretName == ""
+}
+
+func shouldHaveExternalDNS(requirements *config.RequirementsConfig) bool {
+	return requirements.Ingress.ExternalDNS
+}
+
+func addApp(apps *config.AppConfig, chartName string, beforeName string) bool {
 	idx := -1
 	for i, a := range apps.Apps {
 		switch a.Name {
 		case chartName:
 			return false
-		case "repositories":
+		case beforeName:
 			idx = i
 		}
 	}
@@ -230,6 +251,9 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	if FlagChanged(cmd, "env-git-public") {
 		r.Cluster.EnvironmentGitPublic = flags.EnvironmentGitPublic
 	}
+	if FlagChanged(cmd, "externaldns") {
+		r.Ingress.ExternalDNS = flags.ExternalDNS
+	}
 	if FlagChanged(cmd, "git-public") {
 		r.Cluster.GitPublic = flags.GitPublic
 	}
@@ -247,6 +271,9 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if FlagChanged(cmd, "vault-recreate-bucket") {
 		r.Vault.RecreateBucket = flags.VaultRecreateBucket
+	}
+	if FlagChanged(cmd, "tls") {
+		r.Ingress.TLS.Enabled = flags.TLS
 	}
 
 	if flags.Repository != "" {
@@ -316,6 +343,8 @@ func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementBools) {
 	cmd.Flags().BoolVarP(&flags.Terraform, "terraform", "", false, "enables or disables the use of terraform")
 	cmd.Flags().BoolVarP(&flags.VaultRecreateBucket, "vault-recreate-bucket", "", false, "enables or disables whether to rereate the secret bucket on boot")
 	cmd.Flags().BoolVarP(&flags.VaultDisableURLDiscover, "vault-disable-url-discover", "", false, "override the default lookup of the Vault URL, could be incluster service or external ingress")
+	cmd.Flags().BoolVarP(&flags.ExternalDNS, "externaldns", "", false, "should we enable the ExternalDNS app to register DNS entries for Ingress resources")
+	cmd.Flags().BoolVarP(&flags.TLS, "tls", "", false, "enable TLS for Ingress")
 	cmd.Flags().StringVarP(&flags.Repository, "repository", "", "", "the artifact repository. Possible values are: "+strings.Join(config.RepositoryTypeValues, ", "))
 }
 
@@ -343,6 +372,7 @@ func AddRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig) {
 	// ingress
 	cmd.Flags().StringVarP(&r.Ingress.Domain, "domain", "d", "", "configures the domain name")
 	cmd.Flags().StringVarP(&r.Ingress.TLS.Email, "tls-email", "", "", "the TLS email address to enable TLS on the domain")
+	cmd.Flags().StringVarP(&r.Ingress.TLS.SecretName, "tls-secret", "", "", "the custom Kubernetes Secret name for the TLS certificate")
 
 	// storage
 	cmd.Flags().StringVarP(&r.Storage.Logs.URL, "bucket-logs", "", "", "the bucket URL to store logs")

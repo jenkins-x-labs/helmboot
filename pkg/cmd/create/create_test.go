@@ -25,11 +25,19 @@ func TestCreate(t *testing.T) {
 	testCases := []testCase{
 		{
 			Name: "remote",
-			Args: []string{"--provider", "kubernetes", "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--env-git-public", "--git-public", "--env-remote"},
+			Args: []string{"--provider", "kubernetes", "--env-git-public", "--git-public", "--env-remote"},
 		},
 		{
 			Name: "bucketrepo",
-			Args: []string{"--provider", "kind", "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--env-git-public", "--git-public", "--repository", "bucketrepo"},
+			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--repository", "bucketrepo"},
+		},
+		{
+			Name: "tls",
+			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--tls", "--externaldns"},
+		},
+		{
+			Name: "tls-custom-secret",
+			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--tls", "--tls-secret", "my-tls-secret"},
 		},
 	}
 
@@ -42,7 +50,7 @@ func TestCreate(t *testing.T) {
 		outFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err, "failed to create tempo file")
 		outFileName := outFile.Name()
-		args := append(tc.Args, "--cluster", tc.Name, "--out", outFileName)
+		args := append(tc.Args, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--cluster", tc.Name, "--out", outFileName)
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
@@ -81,6 +89,14 @@ func TestCreate(t *testing.T) {
 			AssertHasApp(t, apps, "repositories", appMessage)
 			AssertNoApp(t, apps, "jenkins-x/chartmuseum", appMessage)
 			AssertNoApp(t, apps, "jenkins-x/nexus", appMessage)
+
+		case "tls":
+			AssertHasApp(t, apps, "jetstack/cert-manager", appMessage)
+			AssertHasApp(t, apps, "bitnami/externaldns", appMessage)
+
+		case "tls-custom-secret":
+			AssertNoApp(t, apps, "jetstack/cert-manager", appMessage)
+			AssertNoApp(t, apps, "bitnami/externaldns", appMessage)
 		}
 		assert.FileExists(t, outFileName, "did not generate the Git URL file")
 		data, err := ioutil.ReadFile(outFileName)
