@@ -24,7 +24,12 @@ func TestCreate(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
-			Name: "defaultcluster",
+			Name: "remote",
+			Args: []string{"--provider", "kubernetes", "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--env-git-public", "--git-public", "--env-remote"},
+		},
+		{
+			Name: "bucketrepo",
+			Args: []string{"--provider", "kind", "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--env-git-public", "--git-public", "--repository", "bucketrepo"},
 		},
 	}
 
@@ -37,7 +42,7 @@ func TestCreate(t *testing.T) {
 		outFile, err := ioutil.TempFile("", "")
 		require.NoError(t, err, "failed to create tempo file")
 		outFileName := outFile.Name()
-		args := []string{"--provider", "kubernetes", "--cluster", tc.Name, "--git-server", "https://fake.com", "--git-kind", "fake", "--env-git-owner", "jstrachan", "--out", outFileName, "--env-git-public", "--git-public", "--env-remote"}
+		args := append(tc.Args, "--cluster", tc.Name, "--out", outFileName)
 		args = append(args, tc.Args...)
 		co.Args = args
 		co.JXFactory = fakejxfactory.NewFakeFactory()
@@ -64,6 +69,19 @@ func TestCreate(t *testing.T) {
 
 		AssertHasApp(t, apps, "jenkins-x/lighthouse", appMessage)
 
+		switch tc.Name {
+		case "remote":
+			AssertHasApp(t, apps, "jenkins-x/chartmuseum", appMessage)
+			AssertHasApp(t, apps, "jenkins-x/nexus", appMessage)
+			AssertHasApp(t, apps, "repositories", appMessage)
+			AssertNoApp(t, apps, "jenkins-x/bucketrepo", appMessage)
+
+		case "bucketrepo":
+			AssertHasApp(t, apps, "jenkins-x/bucketrepo", appMessage)
+			AssertHasApp(t, apps, "repositories", appMessage)
+			AssertNoApp(t, apps, "jenkins-x/chartmuseum", appMessage)
+			AssertNoApp(t, apps, "jenkins-x/nexus", appMessage)
+		}
 		assert.FileExists(t, outFileName, "did not generate the Git URL file")
 		data, err := ioutil.ReadFile(outFileName)
 		require.NoError(t, err, "failed to load file %s", outFileName)
@@ -80,14 +98,32 @@ func TestCreate(t *testing.T) {
 			if e.Key == "dev" {
 				assert.Equal(t, false, e.RemoteCluster, "requirements.Environments[%d].RemoteCluster for key %s", i, e.Key)
 			} else {
-				assert.Equal(t, true, e.RemoteCluster, "requirements.Environments[%d].RemoteCluster for key %s", i, e.Key)
+				expectedRemote := tc.Name == "remote"
+				assert.Equal(t, expectedRemote, e.RemoteCluster, "requirements.Environments[%d].RemoteCluster for key %s", i, e.Key)
 			}
 			t.Logf("requirements.Environments[%d].RemoteCluster = %v for key %s ", i, e.RemoteCluster, e.Key)
 		}
 	}
 }
 
+// AssertHasApp asserts that the given app name is in the generated apps YAML
 func AssertHasApp(t *testing.T, appConfig *config.AppConfig, appName string, message string) {
+	found, names := HasApp(t, appConfig, appName, message)
+	if !found {
+		assert.Fail(t, fmt.Sprintf("does not have the app %s for %s. Current apps are: %s", appName, message, strings.Join(names, ", ")))
+	}
+}
+
+// AssertNoApp asserts that the given app name is in the generated apps YAML
+func AssertNoApp(t *testing.T, appConfig *config.AppConfig, appName string, message string) {
+	found, names := HasApp(t, appConfig, appName, message)
+	if found {
+		assert.Fail(t, fmt.Sprintf("should not have the app %s for %s. Current apps are: %s", appName, message, strings.Join(names, ", ")))
+	}
+}
+
+// HasApp tests that the app config has the given app
+func HasApp(t *testing.T, appConfig *config.AppConfig, appName string, message string) (bool, []string) {
 	found := false
 	names := []string{}
 	for _, app := range appConfig.Apps {
@@ -97,8 +133,5 @@ func AssertHasApp(t *testing.T, appConfig *config.AppConfig, appName string, mes
 			found = true
 		}
 	}
-	if !found {
-		assert.Fail(t, fmt.Sprintf("does not have the app %s for %s. Current apps are: %s", appName, message, strings.Join(names, ", ")))
-	}
-
+	return found, names
 }

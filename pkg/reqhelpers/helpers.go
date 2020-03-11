@@ -23,6 +23,7 @@ import (
 type RequirementBools struct {
 	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote, GitOps, Kaniko, Terraform bool
 	VaultRecreateBucket, VaultDisableURLDiscover                                               bool
+	Repository                                                                                 string
 }
 
 // GetDevEnvironmentConfig returns the dev environment for the given requirements or nil
@@ -158,6 +159,69 @@ func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputR
 	return nil
 }
 
+// OverrideRequirements
+func ValidateApps(dir string) (*config.AppConfig, string, error) {
+	requirements, _, err := config.LoadRequirementsConfig(dir)
+	if err != nil {
+		return nil, "", err
+	}
+	apps, appsFileName, err := config.LoadAppConfig(dir)
+
+	modified := false
+	if requirements.Repository != config.RepositoryTypeNexus {
+		if removeApp(apps, "jenkins-x/nexus") {
+			modified = true
+		}
+	}
+	if requirements.Repository == config.RepositoryTypeBucketRepo {
+		if removeApp(apps, "jenkins-x/chartmuseum") {
+			modified = true
+		}
+		if addApp(apps, "jenkins-x/bucketrepo") {
+			modified = true
+		}
+	}
+	if modified {
+		err = apps.SaveConfig(appsFileName)
+		if err != nil {
+			return apps, appsFileName, errors.Wrapf(err, "failed to save modified file %s", appsFileName)
+		}
+	}
+	return apps, appsFileName, err
+}
+
+func addApp(apps *config.AppConfig, chartName string) bool {
+	idx := -1
+	for i, a := range apps.Apps {
+		switch a.Name {
+		case chartName:
+			return false
+		case "repositories":
+			idx = i
+		}
+	}
+	app := config.App{Name: chartName}
+
+	// if we have a repositories chart lets add apps before that
+	if idx >= 0 {
+		newApps := append([]config.App{app}, apps.Apps[idx:]...)
+		apps.Apps = append(apps.Apps[0:idx], newApps...)
+	} else {
+		apps.Apps = append(apps.Apps, app)
+	}
+	return true
+}
+
+func removeApp(apps *config.AppConfig, chartName string) bool {
+	for i, a := range apps.Apps {
+		if a.Name == chartName {
+			apps.Apps = append(apps.Apps[0:i], apps.Apps[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *RequirementBools) error {
 	// override boolean flags if specified
 	if FlagChanged(cmd, "autoupgrade") {
@@ -183,6 +247,10 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if FlagChanged(cmd, "vault-recreate-bucket") {
 		r.Vault.RecreateBucket = flags.VaultRecreateBucket
+	}
+
+	if flags.Repository != "" {
+		r.Repository = config.RepositoryType(flags.Repository)
 	}
 
 	if flags.EnvironmentRemote {
@@ -248,6 +316,7 @@ func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementBools) {
 	cmd.Flags().BoolVarP(&flags.Terraform, "terraform", "", false, "enables or disables the use of terraform")
 	cmd.Flags().BoolVarP(&flags.VaultRecreateBucket, "vault-recreate-bucket", "", false, "enables or disables whether to rereate the secret bucket on boot")
 	cmd.Flags().BoolVarP(&flags.VaultDisableURLDiscover, "vault-disable-url-discover", "", false, "override the default lookup of the Vault URL, could be incluster service or external ingress")
+	cmd.Flags().StringVarP(&flags.Repository, "repository", "", "", "the artifact repository. Possible values are: "+strings.Join(config.RepositoryTypeValues, ", "))
 }
 
 // AddRequirementsOptions add CLI flags to the requirements
