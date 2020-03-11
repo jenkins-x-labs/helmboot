@@ -52,18 +52,16 @@ var (
 // UpgradeOptions the options for upgrading a cluster
 type UpgradeOptions struct {
 	envfactory.EnvFactory
-	NoCommit bool
 
 	OverrideRequirements config.RequirementsConfig
 	Namespace            string
 	GitCloneURL          string
 	InitialGitURL        string
 	Dir                  string
-	UsePullRequest       bool
-
-	// if we are modifing an existing git repository
-	gitRepositoryExisted bool
 	branchName           string
+	UsePullRequest       bool
+	NoCommit             bool
+	gitRepositoryExisted bool // if we are modifying an existing git repository
 }
 
 // NewCmdUpgrade creates a command object for the command

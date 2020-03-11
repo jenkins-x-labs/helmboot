@@ -29,11 +29,13 @@ type EnvFactory struct {
 	IOFileHandles *util.IOFileHandles
 	ScmClient     *scm.Client
 	BatchMode     bool
+	NoOAuth       bool
 }
 
 // AddFlags adds common CLI flags
 func (o *EnvFactory) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.BatchMode, "batch-mode", "b", false, "Enables batch mode which avoids prompting for user input")
+	cmd.Flags().BoolVarP(&o.NoOAuth, "no-oauth", "", false, "Disables the use of OAuth login to github.com to get a github access token")
 	cmd.Flags().StringVarP(&o.RepoName, "repo", "", "", "the name of the development git repository to create")
 	cmd.Flags().StringVarP(&o.GitURLOutFile, "out", "", "", "the name of the file to save with the created git URL inside")
 
@@ -153,5 +155,7 @@ func (o *EnvFactory) PushToGit(cloneURL string, userAuth *auth.UserAuth, dir str
 
 // JXAdapter creates an adapter to the jx code
 func (o *EnvFactory) JXAdapter() *jxadapt.JXAdapter {
-	return jxadapt.NewJXAdapter(o.JXFactory, o.Gitter, o.BatchMode)
+	a := jxadapt.NewJXAdapter(o.JXFactory, o.Gitter, o.BatchMode)
+	a.NoOAuth = o.NoOAuth
+	return a
 }

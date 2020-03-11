@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"strings"
 
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
-	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/kube"
@@ -22,7 +20,9 @@ import (
 // RequirementBools for the boolean flags we only update if specified on the CLI
 type RequirementBools struct {
 	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote, GitOps, Kaniko, Terraform bool
+	ExternalDNS, TLS                                                                           bool
 	VaultRecreateBucket, VaultDisableURLDiscover                                               bool
+	Repository                                                                                 string
 }
 
 // GetDevEnvironmentConfig returns the dev environment for the given requirements or nil
@@ -112,7 +112,7 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 	return requirements, nil
 }
 
-// OverrideRequirements
+// OverrideRequirements allows CLI overrides
 func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputRequirements *config.RequirementsConfig, flags *RequirementBools) error {
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
@@ -158,6 +158,89 @@ func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputR
 	return nil
 }
 
+// ValidateApps validates the apps match the requirements
+func ValidateApps(dir string) (*config.AppConfig, string, error) {
+	requirements, _, err := config.LoadRequirementsConfig(dir)
+	if err != nil {
+		return nil, "", err
+	}
+	apps, appsFileName, err := config.LoadAppConfig(dir)
+
+	modified := false
+	if requirements.Repository != config.RepositoryTypeNexus {
+		if removeApp(apps, "jenkins-x/nexus") {
+			modified = true
+		}
+	}
+	if requirements.Repository == config.RepositoryTypeBucketRepo {
+		if removeApp(apps, "jenkins-x/chartmuseum") {
+			modified = true
+		}
+		if addApp(apps, "jenkins-x/bucketrepo", "repositories") {
+			modified = true
+		}
+	}
+
+	if shouldHaveCertManager(requirements) {
+		if addApp(apps, "jetstack/cert-manager", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+	if shouldHaveExternalDNS(requirements) {
+		if addApp(apps, "bitnami/externaldns", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+
+	if modified {
+		err = apps.SaveConfig(appsFileName)
+		if err != nil {
+			return apps, appsFileName, errors.Wrapf(err, "failed to save modified file %s", appsFileName)
+		}
+	}
+	return apps, appsFileName, err
+}
+
+func shouldHaveCertManager(requirements *config.RequirementsConfig) bool {
+	return requirements.Ingress.TLS.Enabled && requirements.Ingress.TLS.SecretName == ""
+}
+
+func shouldHaveExternalDNS(requirements *config.RequirementsConfig) bool {
+	return requirements.Ingress.ExternalDNS
+}
+
+func addApp(apps *config.AppConfig, chartName string, beforeName string) bool {
+	idx := -1
+	for i, a := range apps.Apps {
+		switch a.Name {
+		case chartName:
+			return false
+		case beforeName:
+			idx = i
+		}
+	}
+	app := config.App{Name: chartName}
+
+	// if we have a repositories chart lets add apps before that
+	if idx >= 0 {
+		newApps := append([]config.App{app}, apps.Apps[idx:]...)
+		apps.Apps = append(apps.Apps[0:idx], newApps...)
+	} else {
+		apps.Apps = append(apps.Apps, app)
+	}
+	return true
+}
+
+func removeApp(apps *config.AppConfig, chartName string) bool {
+	for i, a := range apps.Apps {
+		if a.Name == chartName {
+			apps.Apps = append(apps.Apps[0:i], apps.Apps[i+1:]...)
+			return true
+		}
+	}
+	return false
+}
+
 func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *RequirementBools) error {
 	// override boolean flags if specified
 	if FlagChanged(cmd, "autoupgrade") {
@@ -165,6 +248,9 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if FlagChanged(cmd, "env-git-public") {
 		r.Cluster.EnvironmentGitPublic = flags.EnvironmentGitPublic
+	}
+	if FlagChanged(cmd, "externaldns") {
+		r.Ingress.ExternalDNS = flags.ExternalDNS
 	}
 	if FlagChanged(cmd, "git-public") {
 		r.Cluster.GitPublic = flags.GitPublic
@@ -183,6 +269,13 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if FlagChanged(cmd, "vault-recreate-bucket") {
 		r.Vault.RecreateBucket = flags.VaultRecreateBucket
+	}
+	if FlagChanged(cmd, "tls") {
+		r.Ingress.TLS.Enabled = flags.TLS
+	}
+
+	if flags.Repository != "" {
+		r.Repository = config.RepositoryType(flags.Repository)
 	}
 
 	if flags.EnvironmentRemote {
@@ -235,73 +328,4 @@ func defaultStorage(storage *config.StorageEntryConfig) {
 	if storage.URL != "" {
 		storage.Enabled = true
 	}
-}
-
-// AddRequirementsFlagsOptions add CLI options to the flags
-func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementBools) {
-	cmd.Flags().BoolVarP(&flags.AutoUpgrade, "autoupgrade", "", false, "enables or disables auto upgrades")
-	cmd.Flags().BoolVarP(&flags.EnvironmentRemote, "env-remote", "", false, "if enables then all other environments than dev (staging & production by default) will be configured to be in remote clusters")
-	cmd.Flags().BoolVarP(&flags.EnvironmentGitPublic, "env-git-public", "", false, "enables or disables whether the environment repositories should be public")
-	cmd.Flags().BoolVarP(&flags.GitPublic, "git-public", "", false, "enables or disables whether the project repositories should be public")
-	cmd.Flags().BoolVarP(&flags.GitOps, "gitops", "g", false, "enables or disables the use of gitops")
-	cmd.Flags().BoolVarP(&flags.Kaniko, "kaniko", "", false, "enables or disables the use of kaniko")
-	cmd.Flags().BoolVarP(&flags.Terraform, "terraform", "", false, "enables or disables the use of terraform")
-	cmd.Flags().BoolVarP(&flags.VaultRecreateBucket, "vault-recreate-bucket", "", false, "enables or disables whether to rereate the secret bucket on boot")
-	cmd.Flags().BoolVarP(&flags.VaultDisableURLDiscover, "vault-disable-url-discover", "", false, "override the default lookup of the Vault URL, could be incluster service or external ingress")
-}
-
-// AddRequirementsOptions add CLI flags to the requirements
-func AddRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig) {
-	cmd.Flags().StringVarP(&r.BootConfigURL, "boot-config-url", "", "", "specify the boot configuration git URL")
-
-	// auto upgrade
-	cmd.Flags().StringVarP(&r.AutoUpdate.Schedule, "autoupdate-schedule", "", "", "the cron schedule for auto upgrading your cluster")
-
-	// cluster
-	cmd.Flags().StringVarP(&r.Cluster.ClusterName, "cluster", "c", "", "configures the cluster name")
-	cmd.Flags().StringVarP(&r.Cluster.Namespace, "namespace", "n", "", "configures the namespace to use")
-	cmd.Flags().StringVarP(&r.Cluster.Provider, "provider", "p", "", "configures the kubernetes provider.  Supported providers: "+cloud.KubernetesProviderOptions())
-	cmd.Flags().StringVarP(&r.Cluster.ProjectID, "project", "", "", "configures the Google Project ID")
-	cmd.Flags().StringVarP(&r.Cluster.Registry, "registry", "", "", "configures the host name of the container registry")
-	cmd.Flags().StringVarP(&r.Cluster.Region, "region", "r", "", "configures the cloud region")
-	cmd.Flags().StringVarP(&r.Cluster.Zone, "zone", "z", "", "configures the cloud zone")
-
-	cmd.Flags().StringVarP(&r.Cluster.ExternalDNSSAName, "extdns-sa", "", "", "configures the External DNS service account name")
-	cmd.Flags().StringVarP(&r.Cluster.KanikoSAName, "kaniko-sa", "", "", "configures the Kaniko service account name")
-
-	AddGitRequirementsOptions(cmd, r)
-
-	// ingress
-	cmd.Flags().StringVarP(&r.Ingress.Domain, "domain", "d", "", "configures the domain name")
-	cmd.Flags().StringVarP(&r.Ingress.TLS.Email, "tls-email", "", "", "the TLS email address to enable TLS on the domain")
-
-	// storage
-	cmd.Flags().StringVarP(&r.Storage.Logs.URL, "bucket-logs", "", "", "the bucket URL to store logs")
-	cmd.Flags().StringVarP(&r.Storage.Backup.URL, "bucket-backups", "", "", "the bucket URL to store backups")
-	cmd.Flags().StringVarP(&r.Storage.Repository.URL, "bucket-repo", "", "", "the bucket URL to store repository artifacts")
-	cmd.Flags().StringVarP(&r.Storage.Reports.URL, "bucket-reports", "", "", "the bucket URL to store reports. If not specified default to te logs bucket")
-
-	// vault
-	cmd.Flags().StringVarP(&r.Vault.Name, "vault-name", "", "", "specify the vault name")
-	cmd.Flags().StringVarP(&r.Vault.Bucket, "vault-bucket", "", "", "specify the vault bucket")
-	cmd.Flags().StringVarP(&r.Vault.Keyring, "vault-keyring", "", "", "specify the vault key ring")
-	cmd.Flags().StringVarP(&r.Vault.Key, "vault-key", "", "", "specify the vault key")
-	cmd.Flags().StringVarP(&r.Vault.ServiceAccount, "vault-sa", "", "", "specify the vault Service Account name")
-
-	// velero
-	cmd.Flags().StringVarP(&r.Velero.ServiceAccount, "velero-sa", "", "", "specify the Velero Service Account name")
-	cmd.Flags().StringVarP(&r.Velero.Namespace, "velero-ns", "", "", "specify the Velero Namespace")
-
-	// version stream
-	cmd.Flags().StringVarP(&r.VersionStream.URL, "version-stream-url", "", "", "specify the Version Stream git URL")
-	cmd.Flags().StringVarP(&r.VersionStream.Ref, "version-stream-ref", "", "", "specify the Version Stream git reference (branch, tag, sha)")
-}
-
-// AddGitRequirementsOptions adds git specific overrides to the given requirements
-func AddGitRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig) {
-	cmd.Flags().StringVarP(&r.Cluster.GitKind, "git-kind", "", "", fmt.Sprintf("the kind of git repository to use. Possible values: %s", strings.Join(gits.KindGits, ", ")))
-	cmd.Flags().StringVarP(&r.Cluster.GitName, "git-name", "", "", "the name of the git repository")
-	cmd.Flags().StringVarP(&r.Cluster.GitServer, "git-server", "", "", "the git server host such as https://github.com or https://gitlab.com")
-	cmd.Flags().StringVarP(&r.Cluster.EnvironmentGitOwner, "env-git-owner", "", "", "the git owner (organisation or user) used to own the git repositories for the environments")
-	cmd.Flags().StringArrayVarP(&r.Cluster.DevEnvApprovers, "approver", "", nil, "the git user names of the approvers for the environments")
 }

@@ -21,6 +21,7 @@ type JXAdapter struct {
 	JXFactory jxfactory.Factory
 	Gitter    gits.Gitter
 	BatchMode bool
+	NoOAuth   bool
 	gitConfig gitconfig.Context
 }
 
@@ -65,7 +66,7 @@ func (a *JXAdapter) ScmClient(serverURL string, owner string, kind string) (*scm
 	token := ""
 	if kind == "" || kind == "github" {
 		kind = "github"
-		if !a.BatchMode {
+		if !a.BatchMode && !a.NoOAuth {
 			if a.gitConfig == nil {
 				a.gitConfig = gitconfig.New()
 			}
