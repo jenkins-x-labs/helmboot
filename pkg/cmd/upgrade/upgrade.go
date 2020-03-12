@@ -163,7 +163,7 @@ func (o *UpgradeOptions) Run() error {
 		}
 		return nil
 	}
-	return o.EnvFactory.CreateDevEnvGitRepository(dir)
+	return o.EnvFactory.CreateDevEnvGitRepository(dir, req.Cluster.EnvironmentGitPublic)
 }
 
 func (o *UpgradeOptions) removeGeneratedRequirementsValuesFile(dir string) error {

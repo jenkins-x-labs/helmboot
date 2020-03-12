@@ -42,7 +42,7 @@ func (o *EnvFactory) AddFlags(cmd *cobra.Command) {
 }
 
 // CreateDevEnvGitRepository creates the dev environment git repository from the given directory
-func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
+func (o *EnvFactory) CreateDevEnvGitRepository(dir string, gitPublic bool) error {
 	o.OutDir = dir
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
@@ -59,6 +59,7 @@ func (o *EnvFactory) CreateDevEnvGitRepository(dir string) error {
 		GitKind:    requirements.Cluster.GitKind,
 		Owner:      dev.Owner,
 		Repository: dev.Repository,
+		GitPublic:  gitPublic,
 	}
 	if cr.Owner == "" {
 		cr.Owner = requirements.Cluster.EnvironmentGitOwner

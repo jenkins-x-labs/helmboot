@@ -103,7 +103,7 @@ func (o *CreateOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	return o.EnvFactory.CreateDevEnvGitRepository(dir)
+	return o.EnvFactory.CreateDevEnvGitRepository(dir, o.Flags.EnvironmentGitPublic)
 }
 
 // gitCloneIfRequired if the specified directory is already a git clone then lets just use it

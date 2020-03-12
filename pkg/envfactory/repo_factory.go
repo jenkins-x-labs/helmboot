@@ -18,6 +18,7 @@ type CreateRepository struct {
 	Owner           string
 	Repository      string
 	CurrentUsername string
+	GitPublic       bool
 }
 
 // ConfirmValues confirms to the user the values to be used to create the new git repository
@@ -88,7 +89,8 @@ func (r *CreateRepository) CreateRepository(scmClient *scm.Client) (*scm.Reposit
 	log.Logger().Infof("creating git repository %s/%s on server %s", info(r.Owner), info(r.Repository), info(r.GitServer))
 
 	input := &scm.RepositoryInput{
-		Name: r.Repository,
+		Name:    r.Repository,
+		Private: !r.GitPublic,
 	}
 	// only specify owner if its not the current user
 	if r.CurrentUsername != r.Owner {
