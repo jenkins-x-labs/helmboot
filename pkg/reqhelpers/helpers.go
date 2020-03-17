@@ -185,6 +185,9 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 		if addApp(apps, "jetstack/cert-manager", "jenkins-x/jxboot-helmfile-resources") {
 			modified = true
 		}
+		if addApp(apps, "jenkins-x/acme", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
 	}
 	if shouldHaveExternalDNS(requirements) {
 		if addApp(apps, "bitnami/externaldns", "jenkins-x/jxboot-helmfile-resources") {
