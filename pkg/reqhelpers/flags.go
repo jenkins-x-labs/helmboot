@@ -11,7 +11,7 @@ import (
 )
 
 // AddRequirementsFlagsOptions add CLI options to the flags
-func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementBools) {
+func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementFlags) {
 	cmd.Flags().BoolVarP(&flags.AutoUpgrade, "autoupgrade", "", false, "enables or disables auto upgrades")
 	cmd.Flags().BoolVarP(&flags.EnvironmentRemote, "env-remote", "", false, "if enables then all other environments than dev (staging & production by default) will be configured to be in remote clusters")
 	cmd.Flags().BoolVarP(&flags.EnvironmentGitPublic, "env-git-public", "", false, "enables or disables whether the environment repositories should be public")
@@ -24,6 +24,7 @@ func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementBools) {
 	cmd.Flags().BoolVarP(&flags.ExternalDNS, "externaldns", "", false, "should we enable the ExternalDNS app to register DNS entries for Ingress resources")
 	cmd.Flags().BoolVarP(&flags.TLS, "tls", "", false, "enable TLS for Ingress")
 	cmd.Flags().StringVarP(&flags.Repository, "repository", "", "", "the artifact repository. Possible values are: "+strings.Join(config.RepositoryTypeValues, ", "))
+	cmd.Flags().StringVarP(&flags.IngressKind, "ingress-kind", "", "", "configures the kind of ingress used (e.g. whether to use Ingress or VirtualService resources. Possible values: "+strings.Join(config.IngressTypeValues, ", "))
 }
 
 // AddRequirementsOptions add CLI flags to the requirements
@@ -49,6 +50,8 @@ func AddRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig) {
 
 	// ingress
 	cmd.Flags().StringVarP(&r.Ingress.Domain, "domain", "d", "", "configures the domain name")
+	cmd.Flags().StringVarP(&r.Ingress.Namespace, "ingress-namespace", "", "", "configures the service kind. e.g. specify NodePort unless you want to use the default LoadBalancer")
+	cmd.Flags().StringVarP(&r.Ingress.Service, "ingress-service", "", "", "configures the ingress service name when no ingress domain is specified and we need to detect the LoadBalancer IP")
 	cmd.Flags().StringVarP(&r.Ingress.ServiceType, "service-type", "", "", "the Ingress controller Service Type such as NodePort if using on premise and you do not have a LoadBalancer service type support")
 	cmd.Flags().StringVarP(&r.Ingress.TLS.Email, "tls-email", "", "", "the TLS email address to enable TLS on the domain")
 	cmd.Flags().StringVarP(&r.Ingress.TLS.SecretName, "tls-secret", "", "", "the custom Kubernetes Secret name for the TLS certificate")

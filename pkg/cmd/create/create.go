@@ -36,7 +36,7 @@ type CreateOptions struct {
 	envfactory.EnvFactory
 	DisableVerifyPackages bool
 	Requirements          config.RequirementsConfig
-	Flags                 reqhelpers.RequirementBools
+	Flags                 reqhelpers.RequirementFlags
 	InitialGitURL         string
 	Dir                   string
 	Cmd                   *cobra.Command
