@@ -17,12 +17,13 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-// RequirementBools for the boolean flags we only update if specified on the CLI
-type RequirementBools struct {
-	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote, GitOps, Kaniko, Terraform bool
-	ExternalDNS, TLS                                                                           bool
-	VaultRecreateBucket, VaultDisableURLDiscover                                               bool
-	Repository                                                                                 string
+// RequirementFlags for the boolean flags we only update if specified on the CLI
+type RequirementFlags struct {
+	Repository                                                      string
+	IngressKind                                                     string
+	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote bool
+	GitOps, Kaniko, Terraform, ExternalDNS, TLS                     bool
+	VaultRecreateBucket, VaultDisableURLDiscover                    bool
 }
 
 // GetDevEnvironmentConfig returns the dev environment for the given requirements or nil
@@ -113,7 +114,7 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 }
 
 // OverrideRequirements allows CLI overrides
-func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputRequirements *config.RequirementsConfig, flags *RequirementBools) error {
+func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputRequirements *config.RequirementsConfig, flags *RequirementFlags) error {
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
 		return err
@@ -181,6 +182,15 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 		}
 	}
 
+	if requirements.Ingress.Kind == config.IngressTypeIstio {
+		if removeApp(apps, "stable/nginx-ingress") {
+			modified = true
+		}
+		if addApp(apps, "jx-labs/istio", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+
 	if shouldHaveCertManager(requirements) {
 		if addApp(apps, "jetstack/cert-manager", "jenkins-x/jxboot-helmfile-resources") {
 			modified = true
@@ -244,7 +254,7 @@ func removeApp(apps *config.AppConfig, chartName string) bool {
 	return false
 }
 
-func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *RequirementBools) error {
+func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *RequirementFlags) error {
 	// override boolean flags if specified
 	if FlagChanged(cmd, "autoupgrade") {
 		r.AutoUpdate.Enabled = flags.AutoUpgrade
@@ -279,6 +289,9 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 
 	if flags.Repository != "" {
 		r.Repository = config.RepositoryType(flags.Repository)
+	}
+	if flags.IngressKind != "" {
+		r.Ingress.Kind = config.IngressType(flags.IngressKind)
 	}
 
 	if flags.EnvironmentRemote {

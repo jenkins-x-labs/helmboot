@@ -39,6 +39,10 @@ func TestCreate(t *testing.T) {
 			Name: "tls-custom-secret",
 			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--tls", "--tls-secret", "my-tls-secret"},
 		},
+		{
+			Name: "istio",
+			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--ingress-kind=istio"},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -99,6 +103,10 @@ func TestCreate(t *testing.T) {
 			AssertNoApp(t, apps, "jetstack/cert-manager", appMessage)
 			AssertNoApp(t, apps, "bitnami/externaldns", appMessage)
 			AssertNoApp(t, apps, "jenkins-x/acme", appMessage)
+
+		case "istio":
+			AssertHasApp(t, apps, "jx-labs/istio", appMessage)
+			AssertNoApp(t, apps, "stable/nginx-ingress", appMessage)
 		}
 		assert.FileExists(t, outFileName, "did not generate the Git URL file")
 		data, err := ioutil.ReadFile(outFileName)

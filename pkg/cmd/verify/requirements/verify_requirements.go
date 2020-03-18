@@ -38,7 +38,7 @@ var (
 type VerifyOptions struct {
 	envfactory.EnvFactory
 	DisableVerifyPackages bool
-	Flags                 reqhelpers.RequirementBools
+	Flags                 reqhelpers.RequirementFlags
 	OverrideRequirements  config.RequirementsConfig
 	Cmd                   *cobra.Command
 	Args                  []string
