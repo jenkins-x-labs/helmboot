@@ -139,6 +139,7 @@ github.com/census-instrumentation/opencensus-proto v0.1.0/go.mod h1:f6KPmirojxKA
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
 github.com/charmbracelet/glamour v0.1.1-0.20200304134224-7e5c90143acc h1:WSZ06evYgfSZYqkcv0+jFVSVCJeYsIvU+J4ILZUrha4=
 github.com/charmbracelet/glamour v0.1.1-0.20200304134224-7e5c90143acc/go.mod h1:sC1EP6T+3nFnl5vwf0TYEs1inMigQxZ7n912YKoxJow=
+github.com/charmbracelet/glamour v0.1.1-0.20200320173916-301d3bcf3058/go.mod h1:sC1EP6T+3nFnl5vwf0TYEs1inMigQxZ7n912YKoxJow=
 github.com/chromedp/cdproto v0.0.0-20180703215205-c125a34ea3b3/go.mod h1:C2GPAraqdt1KfZU7aSmx1XUgarNq/3JmxevQkmCjOVs=
 github.com/chromedp/cdproto v0.0.0-20180720050708-57cf4773008d h1:u/5pA/xuVl0+OEeEgPgRa9AwxQ/0lbMBa8ZACmjzbAQ=
 github.com/chromedp/cdproto v0.0.0-20180720050708-57cf4773008d/go.mod h1:C2GPAraqdt1KfZU7aSmx1XUgarNq/3JmxevQkmCjOVs=
@@ -146,6 +147,8 @@ github.com/chromedp/chromedp v0.1.1 h1:sQjIfUy8Ey55VmxUHEgYI9kPxf5Z37/dZHm8LLX/I
 github.com/chromedp/chromedp v0.1.1/go.mod h1:KKKRCns4HLd/N5oQR+vX13dV/U7U3+QeWFW0vupkJKk=
 github.com/cli/cli v0.6.1 h1:8gyM6MBRdjL+rWBXktZe27KOzCVmBssd30JLoQtd+8A=
 github.com/cli/cli v0.6.1/go.mod h1:aIe+WLswDbBU9Qgbfh3xY9QSjOMU+9GoucwZ622jHn8=
+github.com/cli/cli v0.6.2 h1:aCXn8R/vStITKsJNvcR6IlI2/K0cgZink27YeeSp/IM=
+github.com/cli/cli v0.6.2/go.mod h1:aIe+WLswDbBU9Qgbfh3xY9QSjOMU+9GoucwZ622jHn8=
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cockroachdb/cmux v0.0.0-20170110192607-30d10be49292/go.mod h1:qRiX68mZX1lGBkTWyp3CLcenw9I94W2dLeRvMzcn9N4=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=
