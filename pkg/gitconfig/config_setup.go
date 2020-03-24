@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/jenkins-x/jx/pkg/log"
+	"github.com/jenkins-x/jx/pkg/util"
+
 	"github.com/cli/cli/api"
 	"github.com/cli/cli/auth"
 	"gopkg.in/yaml.v3"
@@ -82,7 +85,16 @@ func setupConfigFile(filename string) (*configEntry, error) {
 	if err == nil && n < len(yamlData) {
 		err = io.ErrShortWrite
 	}
+
 	if err == nil {
+		log.Logger().Infof(util.ColorInfo("Please now grant access to any Organisations you require ") + ", this is needed to create git repositories used to manage environments (GitOps)")
+		fmt.Fprintln(os.Stderr, util.ColorInfo(fmt.Sprintf("https://github.com/settings/connections/applications/%s", oauthClientID)))
+		fmt.Fprintln(os.Stderr, "Press Enter to continue... ")
+		err = waitForEnter(os.Stdin)
+		if err != nil {
+			return &entry, err
+		}
+
 		fmt.Fprintln(os.Stderr, "Authentication complete. Press Enter to continue... ")
 		err := waitForEnter(os.Stdin)
 		if err != nil {
