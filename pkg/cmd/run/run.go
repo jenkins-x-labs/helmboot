@@ -25,6 +25,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/jenkins-x/jx/pkg/versionstream"
+	"github.com/jenkins-x/jx/pkg/versionstream/versionstreamrepo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -354,11 +355,31 @@ func (o *RunOptions) findChartVersion(req *config.RequirementsConfig) (string, e
 
 	u := req.VersionStream.URL
 	ref := req.VersionStream.Ref
-	version, err := co.GetVersionNumber(versionstream.KindChart, o.ChartName, u, ref)
+	version, err := getVersionNumber(versionstream.KindChart, o.ChartName, u, ref, o.Git(), co.GetIOFileHandles())
 	if err != nil {
 		return version, errors.Wrapf(err, "failed to find version of chart %s in version stream %s ref %s", o.ChartName, u, ref)
 	}
 	return version, nil
+}
+
+// getVersionNumber returns the version number for the given kind and name or blank string if there is no locked version
+func getVersionNumber(kind versionstream.VersionKind, name, repo, gitRef string, git gits.Gitter, handles util.IOFileHandles) (string, error) {
+	versioner, err := createVersionResolver(repo, gitRef, git, handles)
+	if err != nil {
+		return "", err
+	}
+	return versioner.StableVersionNumber(kind, name)
+}
+
+// createVersionResolver creates a new VersionResolver service
+func createVersionResolver(versionRepository string, versionRef string, git gits.Gitter, handles util.IOFileHandles) (*versionstream.VersionResolver, error) {
+	versionsDir, _, err := versionstreamrepo.CloneJXVersionsRepo(versionRepository, versionRef, nil, git, true, false, handles)
+	if err != nil {
+		return nil, err
+	}
+	return &versionstream.VersionResolver{
+		VersionsDir: versionsDir,
+	}, nil
 }
 
 func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
