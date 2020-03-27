@@ -3,8 +3,6 @@ package requirements
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/envfactory"
@@ -159,27 +157,7 @@ func (o *VerifyOptions) gitCloneIfRequired(gitter gits.Gitter) (string, error) {
 	if gitURL == "" {
 		return "", util.MissingOption("git-url")
 	}
-	var err error
-	dir := o.Dir
-	if dir != "" {
-		err = os.MkdirAll(dir, util.DefaultWritePermissions)
-		if err != nil {
-			return "", errors.Wrapf(err, "failed to create directory %s", dir)
-		}
-	} else {
-		dir, err = ioutil.TempDir("", "helmboot-")
-		if err != nil {
-			return "", errors.Wrap(err, "failed to create temporary directory")
-		}
-	}
-
-	log.Logger().Debugf("cloning %s to directory %s", util.ColorInfo(gitURL), util.ColorInfo(dir))
-
-	err = gitter.Clone(gitURL, dir)
-	if err != nil {
-		return "", errors.Wrapf(err, "failed to clone repository %s to directory: %s", gitURL, dir)
-	}
-	return dir, nil
+	return githelpers.GitCloneToTempDir(gitter, gitURL, o.Dir)
 }
 
 func (o *VerifyOptions) findGitKind(gitServerURL string) (string, error) {

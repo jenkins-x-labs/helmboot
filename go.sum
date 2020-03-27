@@ -444,6 +444,10 @@ github.com/jenkins-x/jx v0.0.0-20200325100701-3d9af724c9cc h1:ZfN2AiDzyWw76jxrp2
 github.com/jenkins-x/jx v0.0.0-20200325100701-3d9af724c9cc/go.mod h1:QZVsigjVZ634iK2TqkIs10yANye4JbBF2bHd3i41U8o=
 github.com/jenkins-x/jx v0.0.0-20200326065305-bb9487d38031 h1:FY7tP/TY14YuDnj0RtwCQwiHlWvmvWHeTVnCHUrDEXs=
 github.com/jenkins-x/jx v0.0.0-20200326065305-bb9487d38031/go.mod h1:nZmmcSr0p0SEIT76NYTUIZqNlWCIGI+UZpzf4h0HYHg=
+github.com/jenkins-x/jx v0.0.0-20200327144821-c9d0a7a256e3 h1:w5bzYVBP/BTybilO/Pq5dNP5DIdDyYBbW3v0M1vGPRU=
+github.com/jenkins-x/jx v0.0.0-20200327144821-c9d0a7a256e3/go.mod h1:nZmmcSr0p0SEIT76NYTUIZqNlWCIGI+UZpzf4h0HYHg=
+github.com/jenkins-x/jx v0.0.0-20200327155734-257dd009f17b h1:9ObdltBYNPnNa3kDnhZd70NdMYb51skrud/QiRe3JK0=
+github.com/jenkins-x/jx v0.0.0-20200327155734-257dd009f17b/go.mod h1:nZmmcSr0p0SEIT76NYTUIZqNlWCIGI+UZpzf4h0HYHg=
 github.com/jetstack/cert-manager v0.5.2 h1:qs74mdAprZ5kcCYF3arzmEAZtbt+9HneldSJrk21tKs=
 github.com/jetstack/cert-manager v0.5.2/go.mod h1:nbddmhjWxYGt04bxvwVGUSeLhZ2PCyNvd7MpXdq+yWY=
 github.com/jinzhu/gorm v0.0.0-20170316141641-572d0a0ab1eb/go.mod h1:Vla75njaFJ8clLU1W44h34PjIkijhjHIYnZxMqCdxqo=

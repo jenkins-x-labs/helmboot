@@ -9,11 +9,13 @@ import (
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
+	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -354,4 +356,80 @@ func defaultStorage(storage *config.StorageEntryConfig) {
 	if storage.URL != "" {
 		storage.Enabled = true
 	}
+}
+
+// FindRequirementsAndGitURL tries to find the requirements and git URL via either environment or directory
+func FindRequirementsAndGitURL(jxFactory jxfactory.Factory, gitURLOption string, gitter gits.Gitter, dir string) (*config.RequirementsConfig, string, error) {
+	var requirements *config.RequirementsConfig
+	gitURL := ""
+
+	jxClient, ns, err := jxFactory.CreateJXClient()
+	if err != nil {
+		return requirements, gitURL, err
+	}
+	devEnv, err := kube.GetDevEnvironment(jxClient, ns)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return requirements, gitURL, err
+	}
+	if devEnv != nil {
+		gitURL = devEnv.Spec.Source.URL
+		requirements, err = config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
+		if err != nil {
+			log.Logger().Debugf("failed to load requirements from team settings %s", err.Error())
+		}
+	}
+	if gitURLOption != "" {
+		gitURL = gitURLOption
+		if requirements == nil {
+			requirements, err = GetRequirementsFromGit(gitURL)
+			if err != nil {
+				return requirements, gitURL, errors.Wrapf(err, "failed to get requirements from git URL %s", gitURL)
+			}
+		}
+	}
+
+	if requirements == nil {
+		requirements, _, err = config.LoadRequirementsConfig(dir)
+		if err != nil {
+			return requirements, gitURL, err
+		}
+	}
+
+	if gitURL == "" {
+		// lets try find the git URL from
+		gitURL, err = findGitURLFromDir(gitter, dir)
+		if err != nil {
+			return requirements, gitURL, errors.Wrapf(err, "your cluster has not been booted before and you are not inside a git clone of your dev environment repository so you need to pass in the URL of the git repository as --git-url")
+		}
+	}
+	return requirements, gitURL, nil
+}
+
+// FindGitURL tries to find the git URL via either environment or directory
+func FindGitURL(jxFactory jxfactory.Factory) (string, error) {
+	gitURL := ""
+	jxClient, ns, err := jxFactory.CreateJXClient()
+	if err != nil {
+		return gitURL, err
+	}
+	devEnv, err := kube.GetDevEnvironment(jxClient, ns)
+	if err != nil && !apierrors.IsNotFound(err) {
+		return gitURL, err
+	}
+	if devEnv != nil {
+		return devEnv.Spec.Source.URL, nil
+	}
+	return gitURL, nil
+}
+
+func findGitURLFromDir(gitter gits.Gitter, dir string) (string, error) {
+	_, gitConfDir, err := gitter.FindGitConfigDir(dir)
+	if err != nil {
+		return "", errors.Wrapf(err, "there was a problem obtaining the git config dir of directory %s", dir)
+	}
+
+	if gitConfDir == "" {
+		return "", fmt.Errorf("no .git directory could be found from dir %s", dir)
+	}
+	return gitter.DiscoverUpstreamGitURL(gitConfDir)
 }

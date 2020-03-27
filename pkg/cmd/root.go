@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/create"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/destroy"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/run"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/cmd/show"
@@ -28,6 +29,7 @@ func Main() *cobra.Command {
 	cmd.AddCommand(run.NewCmdRun())
 	cmd.AddCommand(secrets.NewCmdSecrets())
 	cmd.AddCommand(step.NewCmdStep())
+	cmd.AddCommand(destroy.NewCmdDestroy())
 
 	cmd.AddCommand(common.SplitCommand(create.NewCmdCreate()))
 	cmd.AddCommand(common.SplitCommand(upgrade.NewCmdUpgrade()))

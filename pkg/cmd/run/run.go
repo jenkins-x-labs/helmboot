@@ -228,63 +228,7 @@ func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, st
 	if o.JXFactory == nil {
 		o.JXFactory = jxfactory.NewFactory()
 	}
-
-	var requirements *config.RequirementsConfig
-	gitURL := ""
-
-	jxClient, ns, err := o.JXFactory.CreateJXClient()
-	if err != nil {
-		return requirements, gitURL, err
-	}
-	devEnv, err := kube.GetDevEnvironment(jxClient, ns)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return requirements, gitURL, err
-	}
-	if devEnv != nil {
-		gitURL = devEnv.Spec.Source.URL
-		requirements, err = config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
-		if err != nil {
-			log.Logger().Debugf("failed to load requirements from team settings %s", err.Error())
-		}
-	}
-	if o.GitURL != "" {
-		gitURL = o.GitURL
-		if requirements == nil {
-			requirements, err = reqhelpers.GetRequirementsFromGit(gitURL)
-			if err != nil {
-				return requirements, gitURL, errors.Wrapf(err, "failed to get requirements from git URL %s", gitURL)
-			}
-		}
-	}
-
-	if requirements == nil {
-		requirements, _, err = config.LoadRequirementsConfig(o.Dir)
-		if err != nil {
-			return requirements, gitURL, err
-		}
-	}
-
-	if gitURL == "" {
-		// lets try find the git URL from
-		gitURL, err = o.findGitURLFromDir()
-		if err != nil {
-			return requirements, gitURL, errors.Wrapf(err, "your cluster has not been booted before and you are not inside a git clone of your dev environment repository so you need to pass in the URL of the git repository as --git-url")
-		}
-	}
-	return requirements, gitURL, nil
-}
-
-func (o *RunOptions) findGitURLFromDir() (string, error) {
-	dir := o.Dir
-	_, gitConfDir, err := o.Git().FindGitConfigDir(dir)
-	if err != nil {
-		return "", errors.Wrapf(err, "there was a problem obtaining the git config dir of directory %s", dir)
-	}
-
-	if gitConfDir == "" {
-		return "", fmt.Errorf("no .git directory could be found from dir %s", dir)
-	}
-	return o.Git().DiscoverUpstreamGitURL(gitConfDir)
+	return reqhelpers.FindRequirementsAndGitURL(o.JXFactory, o.GitURL, o.Git(), o.Dir)
 }
 
 func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
