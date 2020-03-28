@@ -77,9 +77,16 @@ func (o *Options) Run() error {
 	if o.JXFactory == nil {
 		o.JXFactory = jxfactory.NewFactory()
 	}
-	gitURL, err := reqhelpers.FindGitURL(o.JXFactory)
-	if err != nil {
-		return errors.Wrap(err, "failed to find Git URL")
+	gitURL := o.GitURL
+	if gitURL == "" {
+		var err error
+		gitURL, err = reqhelpers.FindGitURL(o.JXFactory)
+		if err != nil {
+			return errors.Wrap(err, "failed to find Git URL")
+		}
+		if gitURL == "" {
+			return fmt.Errorf("could not find git URL")
+		}
 	}
 
 	dir, err := githelpers.GitCloneToTempDir(o.Git(), gitURL, o.Dir)
