@@ -43,6 +43,10 @@ func TestCreate(t *testing.T) {
 			Name: "istio",
 			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--ingress-kind=istio"},
 		},
+		{
+			Name: "kubernetes",
+			Args: []string{"--provider", "kubernetes", "--env-git-public", "--git-public"},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -107,6 +111,9 @@ func TestCreate(t *testing.T) {
 		case "istio":
 			AssertHasApp(t, apps, "jx-labs/istio", appMessage)
 			AssertNoApp(t, apps, "stable/nginx-ingress", appMessage)
+
+		case "kubernetes":
+			AssertHasApp(t, apps, "stable/docker-registry", appMessage)
 		}
 		assert.FileExists(t, outFileName, "did not generate the Git URL file")
 		data, err := ioutil.ReadFile(outFileName)

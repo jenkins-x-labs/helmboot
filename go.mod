@@ -8,7 +8,7 @@ require (
 	github.com/heptio/sonobuoy v0.16.0
 	github.com/jenkins-x/go-scm v1.5.76
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200327155734-257dd009f17b
+	github.com/jenkins-x/jx v0.0.0-20200330075242-6ae6b9362471
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/serving v0.7.0
 	github.com/mitchellh/go-homedir v1.1.0

@@ -7,6 +7,7 @@ import (
 
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/client/clientset/versioned"
+	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
@@ -199,6 +200,12 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 			modified = true
 		}
 		if addApp(apps, "jx-labs/istio", "jenkins-x/jxboot-helmfile-resources") {
+			modified = true
+		}
+	}
+
+	if requirements.Cluster.Provider == cloud.KUBERNETES {
+		if addApp(apps, "stable/docker-registry", "jenkins-x/jxboot-helmfile-resources") {
 			modified = true
 		}
 	}
