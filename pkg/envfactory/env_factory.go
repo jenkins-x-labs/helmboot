@@ -128,10 +128,12 @@ func (o *EnvFactory) VerifyPreInstall(disableVerifyPackages bool, dir string) er
 
 // PrintBootJobInstructions prints the instructions to run the installer
 func (o *EnvFactory) PrintBootJobInstructions(requirements *config.RequirementsConfig, link string) error {
+	info := util.ColorInfo
+	log.Logger().Info("\nto configure your installation clone the environment repository and push changes, see https://jenkins-x.io/docs/labs/boot/getting-started/config/:\n\n")
+	log.Logger().Infof("%s", info(fmt.Sprintf("git clone %s", link)))
 
 	log.Logger().Info("\nto boot your cluster run the following commands:\n\n")
 
-	info := util.ColorInfo
 	log.Logger().Infof("%s", info(fmt.Sprintf("%s secrets edit --git-url %s", common.BinaryName, link)))
 	log.Logger().Infof("%s", info(fmt.Sprintf("%s run --git-url %s", common.BinaryName, link)))
 	return nil
