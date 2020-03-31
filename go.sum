@@ -450,6 +450,8 @@ github.com/jenkins-x/jx v0.0.0-20200327155734-257dd009f17b h1:9ObdltBYNPnNa3kDnh
 github.com/jenkins-x/jx v0.0.0-20200327155734-257dd009f17b/go.mod h1:nZmmcSr0p0SEIT76NYTUIZqNlWCIGI+UZpzf4h0HYHg=
 github.com/jenkins-x/jx v0.0.0-20200330075242-6ae6b9362471 h1:3Lp39Z1CHMtpEQCRng9ChmriAoBM/UE70s8ug9CVTFE=
 github.com/jenkins-x/jx v0.0.0-20200330075242-6ae6b9362471/go.mod h1:nZmmcSr0p0SEIT76NYTUIZqNlWCIGI+UZpzf4h0HYHg=
+github.com/jenkins-x/jx v1.3.981-0.20200331091519-3de5a9a43c57 h1:eTEjaoMOb495einbqavXFjskPZgL5rg0ftAxmHN1OBA=
+github.com/jenkins-x/jx v1.3.981-0.20200331091519-3de5a9a43c57/go.mod h1:vxbWjM7FtYFr9lyEjjSkxcfQVHmBxbhNReJCiir1k9A=
 github.com/jetstack/cert-manager v0.5.2 h1:qs74mdAprZ5kcCYF3arzmEAZtbt+9HneldSJrk21tKs=
 github.com/jetstack/cert-manager v0.5.2/go.mod h1:nbddmhjWxYGt04bxvwVGUSeLhZ2PCyNvd7MpXdq+yWY=
 github.com/jinzhu/gorm v0.0.0-20170316141641-572d0a0ab1eb/go.mod h1:Vla75njaFJ8clLU1W44h34PjIkijhjHIYnZxMqCdxqo=
