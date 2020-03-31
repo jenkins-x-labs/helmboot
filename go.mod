@@ -8,7 +8,7 @@ require (
 	github.com/heptio/sonobuoy v0.16.0
 	github.com/jenkins-x/go-scm v1.5.76
 	github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314
-	github.com/jenkins-x/jx v0.0.0-20200330075242-6ae6b9362471
+	github.com/jenkins-x/jx v1.3.981-0.20200331091519-3de5a9a43c57
 	github.com/jetstack/cert-manager v0.5.2
 	github.com/knative/serving v0.7.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -48,3 +48,5 @@ replace github.com/Azure/azure-sdk-for-go => github.com/Azure/azure-sdk-for-go v
 replace github.com/Azure/go-autorest => github.com/Azure/go-autorest v10.14.0+incompatible
 
 replace github.com/banzaicloud/bank-vaults => github.com/banzaicloud/bank-vaults v0.0.0-20190508130850-5673d28c46bd
+
+go 1.13
