@@ -100,12 +100,12 @@ func TestCreate(t *testing.T) {
 
 		case "tls":
 			AssertHasApp(t, apps, "jetstack/cert-manager", appMessage)
-			AssertHasApp(t, apps, "bitnami/externaldns", appMessage)
+			AssertHasApp(t, apps, "bitnami/external-dns", appMessage)
 			AssertHasApp(t, apps, "jenkins-x/acme", appMessage)
 
 		case "tls-custom-secret":
 			AssertNoApp(t, apps, "jetstack/cert-manager", appMessage)
-			AssertNoApp(t, apps, "bitnami/externaldns", appMessage)
+			AssertNoApp(t, apps, "bitnami/external-dns", appMessage)
 			AssertNoApp(t, apps, "jenkins-x/acme", appMessage)
 
 		case "istio":

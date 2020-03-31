@@ -219,7 +219,7 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 		}
 	}
 	if shouldHaveExternalDNS(requirements) {
-		if addApp(apps, "bitnami/externaldns", "jenkins-x/jxboot-helmfile-resources") {
+		if addApp(apps, "bitnami/external-dns", "jenkins-x/jxboot-helmfile-resources") {
 			modified = true
 		}
 	}
