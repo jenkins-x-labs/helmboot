@@ -2,6 +2,7 @@ package secrets_test
 
 import (
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -72,6 +73,10 @@ func TestSecretsYAMLWithEntries(t *testing.T) {
 	err = yo.Run()
 	require.NoErrorf(t, err, "should not have failed to create YAML")
 
+	assertGeneratedYAMLFileIsValid(t, outFileName, err)
+}
+
+func assertGeneratedYAMLFileIsValid(t *testing.T, outFileName string, err error) {
 	assert.FileExists(t, outFileName, "did not generate output YAML file")
 	data, err := ioutil.ReadFile(outFileName)
 	require.NoErrorf(t, err, "failed to load generated YAML")
@@ -137,6 +142,25 @@ func TestSecretsYAMLWithYAML(t *testing.T) {
 		t.Errorf("Unexpected generated YAML")
 		t.Log(diff)
 	}
+}
+
+func TestSecretsYAMLFromFile(t *testing.T) {
+	outFile, err := ioutil.TempFile("", "test-helmboot-secret-yaml-")
+	require.NoError(t, err, "failed to create a temporary dir")
+	outFileName := outFile.Name()
+
+	_, yo := secrets.NewCmdYAML()
+
+	yo.SecretFile = filepath.Join("test_data", "sample_secrets.txt")
+
+	ns := "jx"
+	f := fakejxfactory.NewFakeFactoryWithObjects(nil, nil, ns)
+	yo.JXFactory = f
+	yo.OutFile = outFileName
+	err = yo.Run()
+	require.NoErrorf(t, err, "should not have failed to create YAML")
+
+	assertGeneratedYAMLFileIsValid(t, outFileName, err)
 }
 
 func convertMaps(sm map[interface{}]interface{}) map[string]interface{} {

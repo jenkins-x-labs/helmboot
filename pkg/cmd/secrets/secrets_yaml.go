@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
@@ -34,6 +35,7 @@ var (
 type YAMLOptions struct {
 	JXFactory  jxfactory.Factory
 	SecretName string
+	SecretFile string
 	OutFile    string
 	BatchMode  bool
 	Verbose    bool
@@ -55,6 +57,7 @@ func NewCmdYAML() (*cobra.Command, *YAMLOptions) {
 	}
 
 	cmd.Flags().StringVarP(&o.OutFile, "out", "o", "", "The output YAML file to generate")
+	cmd.Flags().StringVarP(&o.SecretFile, "file", "f", "", "The secret file to use to get the data for the secrets YAML if using a file rather than kubernetes Secret")
 	cmd.Flags().BoolVarP(&o.Verbose, "verbose", "v", false, "enables verbose logging")
 	cmd.Flags().BoolVarP(&o.BatchMode, "batch-mode", "b", false, "Runs in batch mode without prompting for user input")
 	return cmd, o
@@ -71,24 +74,40 @@ func (o *YAMLOptions) Run() error {
 		return err
 	}
 
-	secretName := o.SecretName
-	if secretName == "" {
-		secretName = os.Getenv("JXL_SECRET_NAME")
-	}
-	if secretName == "" {
-		secretName = secretmgr.LocalSecret
+	secretFile := o.SecretFile
+	if secretFile == "" {
+		secretFile = os.Getenv("JXL_SECRET_FILE")
 	}
 
-	secret, err := kubeClient.CoreV1().Secrets(ns).Get(secretName, metav1.GetOptions{})
-	if err != nil {
-		if apierrors.IsNotFound(err) {
-			return fmt.Errorf("could not read Secret %s in namespace %s", secretName, ns)
+	var data map[string][]byte
+	if secretFile != "" {
+		data, err = loadSecretFile(secretFile)
+		if err != nil {
+			return err
 		}
-		return errors.Wrapf(err, "failed to read Secret %s in namespace %s", secretName, ns)
-	}
-	data := secret.Data
-	if len(data) == 0 {
-		return fmt.Errorf("no data for Secret %s in namespace %s", secretName, ns)
+		if len(data) == 0 {
+			return fmt.Errorf("no data for secret file %s", secretFile)
+		}
+	} else {
+		secretName := o.SecretName
+		if secretName == "" {
+			secretName = os.Getenv("JXL_SECRET_NAME")
+		}
+		if secretName == "" {
+			secretName = secretmgr.LocalSecret
+		}
+
+		secret, err := kubeClient.CoreV1().Secrets(ns).Get(secretName, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				return fmt.Errorf("could not read Secret %s in namespace %s", secretName, ns)
+			}
+			return errors.Wrapf(err, "failed to read Secret %s in namespace %s", secretName, ns)
+		}
+		data = secret.Data
+		if len(data) == 0 {
+			return fmt.Errorf("no data for Secret %s in namespace %s", secretName, ns)
+		}
 	}
 
 	if o.OutFile == "" {
@@ -98,6 +117,35 @@ func (o *YAMLOptions) Run() error {
 		return util.MissingOption("out")
 	}
 	return generateSecretsYAML(o.OutFile, data)
+}
+
+// loadSecretFile loads a secret file of lines of the form "foo: bar"
+func loadSecretFile(fileName string) (map[string][]byte, error) {
+	exists, err := util.FileExists(fileName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to check if secret file %s exists", fileName)
+	}
+
+	if !exists {
+		return nil, errors.Errorf("secret file %s does not exist", fileName)
+	}
+
+	answer := map[string][]byte{}
+	data, err := ioutil.ReadFile(fileName)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to load secret file %s exists", fileName)
+	}
+	for _, l := range strings.Split(string(data), "\n") {
+		line := strings.TrimSpace(l)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		entry := strings.SplitN(line, ":", 2)
+		if len(entry) == 2 {
+			answer[strings.TrimSpace(entry[0])] = []byte(strings.TrimSpace(entry[1]))
+		}
+	}
+	return answer, nil
 }
 
 func generateSecretsYAML(fileName string, secretData map[string][]byte) error {
