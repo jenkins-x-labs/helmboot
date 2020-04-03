@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// AssertYamlEqual validates YAML without worrying about ordering of keys
 func AssertYamlEqual(t *testing.T, expected string, actual string, message string, args ...interface{}) {
 	expectedMap := map[interface{}]interface{}{}
 	actualMap := map[interface{}]interface{}{}

@@ -20,15 +20,15 @@ const (
 	v1SecretMetadataPath = "/v1/secret/metadata/"
 )
 
-// FakeVaultServer a fake vault server for unit testing of vault client operations
-type FakeVaultServer struct {
+// VaultServer a fake vault server for unit testing of vault client operations
+type VaultServer struct {
 	T    *testing.T
 	Data map[string]map[string]interface{}
 }
 
 // NewFakeVaultServer creates a fake vault http server for testing
 func NewFakeVaultServer(t *testing.T) *httptest.Server {
-	fakeVault := &FakeVaultServer{
+	fakeVault := &VaultServer{
 		T: t,
 	}
 	server := httptest.NewServer(http.HandlerFunc(fakeVault.Handle))
@@ -39,7 +39,7 @@ func NewFakeVaultServer(t *testing.T) *httptest.Server {
 }
 
 // Handle handles the vault RESTS APIs
-func (f *FakeVaultServer) Handle(rw http.ResponseWriter, req *http.Request) {
+func (f *VaultServer) Handle(rw http.ResponseWriter, req *http.Request) {
 	path := req.URL.Path
 	f.T.Logf("invoked %s path: %s", req.Method, path)
 
@@ -106,7 +106,7 @@ func (f *FakeVaultServer) Handle(rw http.ResponseWriter, req *http.Request) {
 	http.Error(rw, jsonErrorMessage("Unsupported Operation"), http.StatusNotFound)
 }
 
-func (f *FakeVaultServer) valueKinds(name string) (bool, bool) {
+func (f *VaultServer) valueKinds(name string) (bool, bool) {
 	hasString := false
 	hasMap := false
 	data := f.Data[name]
@@ -121,7 +121,7 @@ func (f *FakeVaultServer) valueKinds(name string) (bool, bool) {
 	return hasString, hasMap
 }
 
-func (f *FakeVaultServer) findKeys(name string) []string {
+func (f *VaultServer) findKeys(name string) []string {
 	answer := []string{}
 	nameAndSlash := name + "/"
 	for k := range f.Data {
@@ -143,7 +143,7 @@ func (f *FakeVaultServer) findKeys(name string) []string {
 	return answer
 }
 
-func (f *FakeVaultServer) returnData(rw http.ResponseWriter, values interface{}) {
+func (f *VaultServer) returnData(rw http.ResponseWriter, values interface{}) {
 	data, err := json.Marshal(values)
 	if err != nil {
 		http.Error(rw, jsonErrorMessage(err.Error()), http.StatusInternalServerError)

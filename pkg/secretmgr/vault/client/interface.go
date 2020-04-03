@@ -1,5 +1,6 @@
 package client
 
+// Client interface for vault clients
 type Client interface {
 
 	// Read reads a tree of values from the vault

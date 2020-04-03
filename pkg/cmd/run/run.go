@@ -343,7 +343,7 @@ func (o *RunOptions) verifySecretsYAML() error {
 
 	exists, err := util.FileExists(yamlFile)
 	if err != nil {
-		return errors.Wrapf(err, "failed to verify secrets YAML file exists: %", yamlFile)
+		return errors.Wrapf(err, "failed to verify secrets YAML file exists: %s", yamlFile)
 	}
 	eo := &secrets.ExportOptions{
 		KindResolver: factory.KindResolver{
@@ -356,15 +356,15 @@ func (o *RunOptions) verifySecretsYAML() error {
 		// lets export the secrets to the yaml file
 		err = eo.Run()
 		if err != nil {
-			return errors.Wrapf(err, "failed to generate the secrets YAML file: %", yamlFile)
+			return errors.Wrapf(err, "failed to generate the secrets YAML file: %s", yamlFile)
 		}
 
 		exists, err = util.FileExists(yamlFile)
 		if err != nil {
-			return errors.Wrapf(err, "failed to verify secrets YAML file exists after it was generated: %", yamlFile)
+			return errors.Wrapf(err, "failed to verify secrets YAML file exists after it was generated: %s", yamlFile)
 		}
 		if !exists {
-			return errors.Errorf("no secrets YAML file exists after it was generated: %", yamlFile)
+			return errors.Errorf("no secrets YAML file exists after it was generated: %s", yamlFile)
 		}
 	}
 

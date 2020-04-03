@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// VaultSecretManager uses a Kubernetes Secret
+// VaultClient a client for vault
 type VaultClient struct {
 	client *vaultapi.Client
 }

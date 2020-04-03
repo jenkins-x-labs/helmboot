@@ -4,6 +4,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/vault/client"
 )
 
+// FakeClient a fake vault client implementation
 type FakeClient struct {
 	Data map[string]map[string]interface{}
 }
@@ -11,6 +12,7 @@ type FakeClient struct {
 // implements interface
 var _ client.Client = (*FakeClient)(nil)
 
+// Read reads data
 func (f *FakeClient) Read(name string) (map[string]interface{}, error) {
 	if f.Data == nil {
 		f.Data = map[string]map[string]interface{}{}
@@ -18,6 +20,7 @@ func (f *FakeClient) Read(name string) (map[string]interface{}, error) {
 	return f.Data[name], nil
 }
 
+// Write writes data
 func (f *FakeClient) Write(name string, values map[string]interface{}) error {
 	if f.Data == nil {
 		f.Data = map[string]map[string]interface{}{}
@@ -26,6 +29,7 @@ func (f *FakeClient) Write(name string, values map[string]interface{}) error {
 	return nil
 }
 
+// String textual info
 func (f *FakeClient) String() string {
 	return "fake vault"
 }

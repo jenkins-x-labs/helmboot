@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// VaultSecretManager uses a Kubernetes Secret
-type VaultSecretManager struct {
+// SecretManager uses a Kubernetes Secret
+type SecretManager struct {
 	Path   string
 	client vaultclient.Client
 }
@@ -32,10 +32,11 @@ func NewVaultSecretManagerFromJXFactory(f jxfactory.Factory) (secretmgr.SecretMa
 
 // NewVaultSecretManager creates a secret manager from the vault client
 func NewVaultSecretManager(client vaultclient.Client, path string) (secretmgr.SecretManager, error) {
-	return &VaultSecretManager{Path: path, client: client}, nil
+	return &SecretManager{Path: path, client: client}, nil
 }
 
-func (v *VaultSecretManager) UpsertSecrets(callback secretmgr.SecretCallback, defaultYaml string) error {
+// UpsertSecrets upserts the secrets yaml
+func (v *SecretManager) UpsertSecrets(callback secretmgr.SecretCallback, defaultYaml string) error {
 	secretYaml, err := v.loadYaml()
 	if err != nil {
 		// lets assume its the first version
@@ -56,18 +57,20 @@ func (v *VaultSecretManager) UpsertSecrets(callback secretmgr.SecretCallback, de
 	return nil
 }
 
-func (v *VaultSecretManager) Kind() string {
+// Kind returns the kind
+func (v *SecretManager) Kind() string {
 	return secretmgr.KindVault
 }
 
-func (v *VaultSecretManager) String() string {
+// String returns the description
+func (v *SecretManager) String() string {
 	return fmt.Sprintf("Vault Secret Manager for vault %s", v.client.String())
 }
 
-func (v *VaultSecretManager) loadYaml() (string, error) {
+func (v *SecretManager) loadYaml() (string, error) {
 	return vaultclient.ReadYaml(v.client, v.Path)
 }
 
-func (v *VaultSecretManager) updateSecretYaml(yaml string) error {
+func (v *SecretManager) updateSecretYaml(yaml string) error {
 	return vaultclient.WriteYAML(v.client, v.Path, yaml)
 }

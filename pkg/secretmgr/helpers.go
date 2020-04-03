@@ -36,7 +36,7 @@ func VerifyBootSecrets(secretsYAML string) error {
 	return nil
 }
 
-// ToYAML converts the data to secrets YAML
+// ToSecretsYAML converts the data to secrets YAML
 func ToSecretsYAML(values map[string]interface{}) (string, error) {
 	if len(values) == 0 {
 		return "", nil
