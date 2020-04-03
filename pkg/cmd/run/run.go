@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/clienthelpers"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/helmer"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
+	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x/jx/pkg/cmd/boot"
 	"github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -108,7 +110,11 @@ func (o *RunOptions) Run() error {
 		bo.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
 		bo.BatchMode = o.BatchMode
 	}
-	err := o.addUserPasswordForPrivateGitClone()
+	err := o.verifySecretsYAML()
+	if err != nil {
+		return err
+	}
+	err = o.addUserPasswordForPrivateGitClone()
 	if err != nil {
 		return err
 	}
@@ -232,6 +238,9 @@ func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, st
 }
 
 func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
+	if requirements.SecretStorage == config.SecretStorageTypeVault {
+		return nil
+	}
 	kubeClient, ns, err := o.JXFactory.CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
@@ -324,6 +333,46 @@ func createVersionResolver(versionRepository string, versionRef string, git gits
 	return &versionstream.VersionResolver{
 		VersionsDir: versionsDir,
 	}, nil
+}
+
+func (o *RunOptions) verifySecretsYAML() error {
+	yamlFile := os.Getenv("JX_SECRETS_YAML")
+	if yamlFile == "" {
+		return errors.Errorf("no $JX_SECRETS_YAML defined")
+	}
+
+	exists, err := util.FileExists(yamlFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to verify secrets YAML file exists: %", yamlFile)
+	}
+	eo := &secrets.ExportOptions{
+		KindResolver: factory.KindResolver{
+			Factory: o.JXFactory,
+			GitURL:  o.GitURL,
+		},
+		OutFile: yamlFile,
+	}
+	if !exists {
+		// lets export the secrets to the yaml file
+		err = eo.Run()
+		if err != nil {
+			return errors.Wrapf(err, "failed to generate the secrets YAML file: %", yamlFile)
+		}
+
+		exists, err = util.FileExists(yamlFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to verify secrets YAML file exists after it was generated: %", yamlFile)
+		}
+		if !exists {
+			return errors.Errorf("no secrets YAML file exists after it was generated: %", yamlFile)
+		}
+	}
+
+	err = eo.VerifySecrets()
+	if err != nil {
+		return errors.Wrapf(err, "failed to verify the secrets for file %s", yamlFile)
+	}
+	return nil
 }
 
 func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
