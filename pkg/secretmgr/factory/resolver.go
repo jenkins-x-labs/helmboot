@@ -83,6 +83,9 @@ func (r *KindResolver) VerifySecrets() error {
 }
 
 func (r *KindResolver) resolveKind(requirements *config.RequirementsConfig) (string, error) {
+	if requirements.SecretStorage == config.SecretStorageTypeVault {
+		return secretmgr.KindVault, nil
+	}
 	if requirements.Cluster.Provider == cloud.GKE {
 		// lets check if we have a Local secret otherwise default to Google
 

@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/clienthelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/helmer"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
@@ -30,7 +31,6 @@ import (
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 )
 
@@ -99,7 +99,7 @@ func NewCmdRun() *cobra.Command {
 
 // Run implements the command
 func (o *RunOptions) Run() error {
-	if o.JobMode || !IsInCluster() {
+	if o.JobMode || !clienthelpers.IsInCluster() {
 		return o.RunBootJob()
 	}
 	bo := &o.BootOptions
@@ -371,10 +371,4 @@ func warnNoSecret(ns, name string) {
 	log.Logger().Warnf("boot secret %s not found in namespace %s\n", name, ns)
 	log.Logger().Infof("Are you running in the correct namespace? To change namespaces see:     %s", util.ColorInfo("https://jenkins-x.io/docs/using-jx/developing/kube-context/"))
 	log.Logger().Infof("Did you remember to import or edit the secrets before running boot? see %s", util.ColorInfo("https://jenkins-x.io/docs/labs/boot/getting-started/secrets/"))
-}
-
-// IsInCluster tells if we are running incluster
-func IsInCluster() bool {
-	_, err := rest.InClusterConfig()
-	return err == nil
 }

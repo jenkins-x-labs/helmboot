@@ -73,10 +73,10 @@ func TestSecretsYAMLWithEntries(t *testing.T) {
 	err = yo.Run()
 	require.NoErrorf(t, err, "should not have failed to create YAML")
 
-	assertGeneratedYAMLFileIsValid(t, outFileName, err)
+	assertGeneratedYAMLFileIsValid(t, outFileName)
 }
 
-func assertGeneratedYAMLFileIsValid(t *testing.T, outFileName string, err error) {
+func assertGeneratedYAMLFileIsValid(t *testing.T, outFileName string) {
 	assert.FileExists(t, outFileName, "did not generate output YAML file")
 	data, err := ioutil.ReadFile(outFileName)
 	require.NoErrorf(t, err, "failed to load generated YAML")
@@ -160,7 +160,7 @@ func TestSecretsYAMLFromFile(t *testing.T) {
 	err = yo.Run()
 	require.NoErrorf(t, err, "should not have failed to create YAML")
 
-	assertGeneratedYAMLFileIsValid(t, outFileName, err)
+	assertGeneratedYAMLFileIsValid(t, outFileName)
 }
 
 func convertMaps(sm map[interface{}]interface{}) map[string]interface{} {
