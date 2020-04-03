@@ -1,12 +1,15 @@
 package factory_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/jenkins-x-labs/helmboot/pkg/fakes/fakejxfactory"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/fake"
+	vaultfake "github.com/jenkins-x-labs/helmboot/pkg/secretmgr/vault/client/fake"
+	"github.com/jenkins-x-labs/helmboot/pkg/testhelpers"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +40,20 @@ func TestFakeSecretManager(t *testing.T) {
 	assert.Equal(t, modifiedYaml, fakeSM.SecretsYAML, "FakeSecretManager should contain the correct YAML")
 }
 
+func TestVaultSecretManagerWithFakeVaultServer(t *testing.T) {
+	_, jxf := vaultfake.NewVaultClientWithFakeKubernetes(t)
+
+	// lets create a fake test vault server...
+	server := vaultfake.NewFakeVaultServer(t)
+	defer server.Close()
+
+	// disable vault cert for testing
+	os.Setenv("JX_DISABLE_VAULT_CERT", "true")
+	defer os.Setenv("JX_DISABLE_VAULT_CERT", "false")
+
+	AssertSecretsManager(t, secretmgr.KindVault, jxf)
+}
+
 func TestLocalSecretManager(t *testing.T) {
 	f := fakejxfactory.NewFakeFactory()
 	AssertSecretsManager(t, secretmgr.KindLocal, f)
@@ -48,12 +65,12 @@ func TestLocalSecretManager(t *testing.T) {
 	require.NoError(t, err, "failed to get Secret %s in namespace %s", secretmgr.LocalSecret, ns)
 
 	secretYaml := string(secret.Data[secretmgr.LocalSecretKey])
-	assert.Equal(t, modifiedYaml, secretYaml, "Secret %s in namespace %s has wrong Secrets YAML", secretmgr.LocalSecret, ns)
+	testhelpers.AssertYamlEqual(t, modifiedYaml, secretYaml, "should have got the YAML from the vault secret manager")
 }
 
 func AssertSecretsManager(t *testing.T, kind string, f jxfactory.Factory) secretmgr.SecretManager {
-	requirments := config.NewRequirementsConfig()
-	sm, err := factory.NewSecretManager(kind, f, requirments)
+	requirements := config.NewRequirementsConfig()
+	sm, err := factory.NewSecretManager(kind, f, requirements)
 	require.NoError(t, err, "failed to create a SecretManager of kind %s", kind)
 	require.NotNil(t, sm, "SecretManager of kind %s", kind)
 
@@ -69,7 +86,7 @@ func AssertSecretsManager(t *testing.T, kind string, f jxfactory.Factory) secret
 	err = sm.UpsertSecrets(testCb, secretmgr.DefaultSecretsYaml)
 	require.NoError(t, err, "failed to get the secrets from the SecretManager of kind %s", kind)
 
-	assert.Equal(t, modifiedYaml, actualYaml, "should have got the YAML from the secret manager kind %s", kind)
+	testhelpers.AssertYamlEqual(t, modifiedYaml, actualYaml, "should have got the YAML from the secret manager kind %s", kind)
 	return sm
 }
 

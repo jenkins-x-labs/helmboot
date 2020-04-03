@@ -7,11 +7,14 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/clienthelpers"
+	"github.com/jenkins-x-labs/helmboot/pkg/cmd/secrets"
 	"github.com/jenkins-x-labs/helmboot/pkg/common"
 	"github.com/jenkins-x-labs/helmboot/pkg/helmer"
 	"github.com/jenkins-x-labs/helmboot/pkg/jxadapt"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
+	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/factory"
 	"github.com/jenkins-x/jx/pkg/cmd/boot"
 	"github.com/jenkins-x/jx/pkg/cmd/clients"
 	"github.com/jenkins-x/jx/pkg/cmd/helper"
@@ -30,7 +33,6 @@ import (
 	"github.com/spf13/cobra"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/rest"
 	"sigs.k8s.io/yaml"
 )
 
@@ -99,7 +101,7 @@ func NewCmdRun() *cobra.Command {
 
 // Run implements the command
 func (o *RunOptions) Run() error {
-	if o.JobMode || !IsInCluster() {
+	if o.JobMode || !clienthelpers.IsInCluster() {
 		return o.RunBootJob()
 	}
 	bo := &o.BootOptions
@@ -108,7 +110,11 @@ func (o *RunOptions) Run() error {
 		bo.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
 		bo.BatchMode = o.BatchMode
 	}
-	err := o.addUserPasswordForPrivateGitClone()
+	err := o.verifySecretsYAML()
+	if err != nil {
+		return err
+	}
+	err = o.addUserPasswordForPrivateGitClone()
 	if err != nil {
 		return err
 	}
@@ -232,6 +238,9 @@ func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, st
 }
 
 func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
+	if requirements.SecretStorage == config.SecretStorageTypeVault {
+		return nil
+	}
 	kubeClient, ns, err := o.JXFactory.CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
@@ -326,6 +335,46 @@ func createVersionResolver(versionRepository string, versionRef string, git gits
 	}, nil
 }
 
+func (o *RunOptions) verifySecretsYAML() error {
+	yamlFile := os.Getenv("JX_SECRETS_YAML")
+	if yamlFile == "" {
+		return errors.Errorf("no $JX_SECRETS_YAML defined")
+	}
+
+	exists, err := util.FileExists(yamlFile)
+	if err != nil {
+		return errors.Wrapf(err, "failed to verify secrets YAML file exists: %s", yamlFile)
+	}
+	eo := &secrets.ExportOptions{
+		KindResolver: factory.KindResolver{
+			Factory: o.JXFactory,
+			GitURL:  o.GitURL,
+		},
+		OutFile: yamlFile,
+	}
+	if !exists {
+		// lets export the secrets to the yaml file
+		err = eo.Run()
+		if err != nil {
+			return errors.Wrapf(err, "failed to generate the secrets YAML file: %s", yamlFile)
+		}
+
+		exists, err = util.FileExists(yamlFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to verify secrets YAML file exists after it was generated: %s", yamlFile)
+		}
+		if !exists {
+			return errors.Errorf("no secrets YAML file exists after it was generated: %s", yamlFile)
+		}
+	}
+
+	err = eo.VerifySecrets()
+	if err != nil {
+		return errors.Wrapf(err, "failed to verify the secrets for file %s", yamlFile)
+	}
+	return nil
+}
+
 func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
 	if o.GitURL == "" {
 		log.Logger().Warnf("no git-url specified so cannot add the username/token")
@@ -371,10 +420,4 @@ func warnNoSecret(ns, name string) {
 	log.Logger().Warnf("boot secret %s not found in namespace %s\n", name, ns)
 	log.Logger().Infof("Are you running in the correct namespace? To change namespaces see:     %s", util.ColorInfo("https://jenkins-x.io/docs/using-jx/developing/kube-context/"))
 	log.Logger().Infof("Did you remember to import or edit the secrets before running boot? see %s", util.ColorInfo("https://jenkins-x.io/docs/labs/boot/getting-started/secrets/"))
-}
-
-// IsInCluster tells if we are running incluster
-func IsInCluster() bool {
-	_, err := rest.InClusterConfig()
-	return err == nil
 }

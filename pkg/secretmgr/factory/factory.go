@@ -8,6 +8,7 @@ import (
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/gsm"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/local"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/proxy"
+	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr/vault"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 )
@@ -33,6 +34,8 @@ func NewSecretManager(kind string, f jxfactory.Factory, requirements *config.Req
 		return local.NewLocalSecretManager(f, requirements.Cluster.Namespace)
 	case secretmgr.KindFake:
 		return fake.NewFakeSecretManager(), nil
+	case secretmgr.KindVault:
+		return vault.NewVaultSecretManagerFromJXFactory(f)
 	default:
 		return nil, fmt.Errorf("unknown secret manager kind: %s", kind)
 	}

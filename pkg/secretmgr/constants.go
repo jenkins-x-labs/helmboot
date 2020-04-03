@@ -10,6 +10,9 @@ const (
 	// KindFake for a fake secret manager
 	KindFake = "fake"
 
+	// KindVault for a vault based secret manager
+	KindVault = "vault"
+
 	// LocalSecret the name of the Kubernetes Secret used to load/store the
 	// secrets
 	/* #nosec */
