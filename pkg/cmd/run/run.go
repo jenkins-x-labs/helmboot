@@ -39,11 +39,13 @@ import (
 // RunOptions contains the command line arguments for this command
 type RunOptions struct {
 	boot.BootOptions
-	JXFactory jxfactory.Factory
-	Gitter    gits.Gitter
-	ChartName string
-	BatchMode bool
-	JobMode   bool
+	JXFactory   jxfactory.Factory
+	Gitter      gits.Gitter
+	ChartName   string
+	GitUserName string
+	GitToken    string
+	BatchMode   bool
+	JobMode     bool
 }
 
 var (
@@ -81,6 +83,8 @@ func NewCmdRun() *cobra.Command {
 	}
 	command.Flags().StringVarP(&options.Dir, "dir", "d", ".", "the directory to look for the Jenkins X Pipeline, requirements and charts")
 	command.Flags().StringVarP(&options.GitURL, "git-url", "u", "", "override the Git clone URL for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-ref as well")
+	command.Flags().StringVarP(&options.GitUserName, "git-username", "", "", "specify the git user name to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
+	command.Flags().StringVarP(&options.GitToken, "git-token", "", "", "specify the git token to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
 	command.Flags().StringVarP(&options.GitRef, "git-ref", "", "master", "override the Git ref for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-url as well")
 	command.Flags().StringVarP(&options.ChartName, "chart", "c", defaultChartName, "the chart name to use to install the boot Job")
 	command.Flags().StringVarP(&options.VersionStreamURL, "versions-repo", "", common.DefaultVersionsURL, "the bootstrap URL for the versions repo. Once the boot config is cloned, the repo will be then read from the jx-requirements.yml")
@@ -101,7 +105,7 @@ func NewCmdRun() *cobra.Command {
 
 // Run implements the command
 func (o *RunOptions) Run() error {
-	if o.JobMode || !clienthelpers.IsInCluster() {
+	if (o.JobMode || !clienthelpers.IsInCluster()) && os.Getenv("JX_DEBUG_JOB") != "true" {
 		return o.RunBootJob()
 	}
 	bo := &o.BootOptions
@@ -110,11 +114,11 @@ func (o *RunOptions) Run() error {
 		bo.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
 		bo.BatchMode = o.BatchMode
 	}
-	err := o.verifySecretsYAML()
+	err := o.addUserPasswordForPrivateGitClone()
 	if err != nil {
 		return err
 	}
-	err = o.addUserPasswordForPrivateGitClone()
+	err = o.verifySecretsYAML()
 	if err != nil {
 		return err
 	}
@@ -385,32 +389,44 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
 		return errors.Wrapf(err, "failed to parse git URL %s", o.GitURL)
 	}
 
-	yamlFile := os.Getenv("JX_SECRETS_YAML")
-	if yamlFile == "" {
-		return errors.Errorf("no $JX_SECRETS_YAML defined")
-	}
-	data, err := ioutil.ReadFile(yamlFile)
-	if err != nil {
-		return errors.Wrapf(err, "failed to load secrets YAML %s", yamlFile)
-	}
-
-	yamlData := map[string]interface{}{}
-	err = yaml.Unmarshal(data, &yamlData)
-	if err != nil {
-		return errors.Wrapf(err, "failed to parse secrets YAML %s", yamlFile)
+	// lets check if we've already got a user and password
+	if u.User != nil {
+		user := u.User
+		pwd, f := user.Password()
+		if user.Username() != "" && pwd != "" && f {
+			return nil
+		}
 	}
 
-	username := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.username")
-	if username == "" {
-		log.Logger().Warnf("missing secret: secrets.pipelineUser.username")
-		return nil
-	}
-	token := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.token")
-	if token == "" {
-		log.Logger().Warnf("missing secret: secrets.pipelineUser.token")
-		return nil
-	}
+	username := o.GitUserName
+	token := o.GitToken
+	if username == "" || token == "" {
+		yamlFile := os.Getenv("JX_SECRETS_YAML")
+		if yamlFile == "" {
+			return errors.Errorf("no $JX_SECRETS_YAML defined")
+		}
+		data, err := ioutil.ReadFile(yamlFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to load secrets YAML %s", yamlFile)
+		}
 
+		yamlData := map[string]interface{}{}
+		err = yaml.Unmarshal(data, &yamlData)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse secrets YAML %s", yamlFile)
+		}
+
+		username = util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.username")
+		if username == "" {
+			log.Logger().Warnf("missing secret: secrets.pipelineUser.username")
+			return nil
+		}
+		token = util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.token")
+		if token == "" {
+			log.Logger().Warnf("missing secret: secrets.pipelineUser.token")
+			return nil
+		}
+	}
 	u.User = url.UserPassword(username, token)
 	o.GitURL = u.String()
 	return nil
