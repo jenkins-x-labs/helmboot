@@ -24,6 +24,7 @@ import (
 type RequirementFlags struct {
 	Repository                                                      string
 	IngressKind                                                     string
+	SecretStorage                                                   string
 	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote bool
 	GitOps, Kaniko, Terraform, ExternalDNS, TLS                     bool
 	VaultRecreateBucket, VaultDisableURLDiscover                    bool
@@ -311,6 +312,9 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if flags.IngressKind != "" {
 		r.Ingress.Kind = config.IngressType(flags.IngressKind)
+	}
+	if flags.SecretStorage != "" {
+		r.SecretStorage = config.SecretStorageType(flags.SecretStorage)
 	}
 
 	if flags.EnvironmentRemote {

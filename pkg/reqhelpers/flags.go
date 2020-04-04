@@ -25,6 +25,7 @@ func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementFlags) {
 	cmd.Flags().BoolVarP(&flags.TLS, "tls", "", false, "enable TLS for Ingress")
 	cmd.Flags().StringVarP(&flags.Repository, "repository", "", "", "the artifact repository. Possible values are: "+strings.Join(config.RepositoryTypeValues, ", "))
 	cmd.Flags().StringVarP(&flags.IngressKind, "ingress-kind", "", "", "configures the kind of ingress used (e.g. whether to use Ingress or VirtualService resources. Possible values: "+strings.Join(config.IngressTypeValues, ", "))
+	cmd.Flags().StringVarP(&flags.SecretStorage, "secret", "", "", "configures the secret storage kind. Possible values: "+strings.Join(config.SecretStorageTypeValues, ", "))
 }
 
 // AddRequirementsOptions add CLI flags to the requirements
