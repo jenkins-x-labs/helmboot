@@ -24,6 +24,10 @@ func TestCreate(t *testing.T) {
 	}
 	testCases := []testCase{
 		{
+			Name: "vault",
+			Args: []string{"--provider", "kind", "--env-git-public", "--git-public", "--secret", "vault"},
+		},
+		{
 			Name: "remote",
 			Args: []string{"--provider", "kubernetes", "--env-git-public", "--git-public", "--env-remote"},
 		},
@@ -139,6 +143,11 @@ func TestCreate(t *testing.T) {
 
 		if requirements.Cluster.Provider == "kind" {
 			assert.Equal(t, true, requirements.Ingress.IgnoreLoadBalancer, "dev requirements.Ingress.IgnoreLoadBalancer for test %s", tc.Name)
+		}
+
+		if tc.Name == "vault" {
+			assert.Equal(t, config.SecretStorageTypeVault, requirements.SecretStorage, "dev requirements.SecretStorage for test %s", tc.Name)
+			t.Logf("has vault secret storage for test %s", tc.Name)
 		}
 	}
 }
