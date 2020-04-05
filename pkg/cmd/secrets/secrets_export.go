@@ -87,9 +87,8 @@ func (o *ExportOptions) Run() error {
 		err := os.MkdirAll(dir, util.DefaultWritePermissions)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create parent directory %s", dir)
-		} else {
-			log.Logger().Infof("created directory %s", dir)
 		}
+		log.Logger().Infof("created directory %s", dir)
 	}
 
 	sm, err := o.CreateSecretManager()
