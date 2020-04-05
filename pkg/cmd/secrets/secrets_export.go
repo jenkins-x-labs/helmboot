@@ -29,6 +29,10 @@ var (
 
 		# display the current secrets values on the terminal
 		%s secrets export -c
+
+		# populate the YAML file at $JX_SECRETS_YAML
+		export JX_SECRETS_YAML="/tmp/jx-secrets.yaml"
+		%s secrets export
 	`)
 )
 
@@ -54,7 +58,11 @@ func NewCmdExport() (*cobra.Command, *ExportOptions) {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.OutFile, "file", "f", "/tmp/secrets/helmboot/secrets.yaml", "the file to use to save the secrets to")
+	defaultOutputFile := os.Getenv("JX_SECRETS_YAML")
+	if defaultOutputFile == "" {
+		defaultOutputFile = "/tmp/secrets/helmboot/secrets.yaml"
+	}
+	cmd.Flags().StringVarP(&o.OutFile, "file", "f", defaultOutputFile, "the file to use to save the secrets to")
 	cmd.Flags().BoolVarP(&o.Console, "console", "c", false, "display the secrets on the console instead of a file")
 
 	AddKindResolverFlags(cmd, &o.KindResolver)
@@ -76,10 +84,11 @@ func (o *ExportOptions) Run() error {
 	}
 	if !o.Console {
 		dir := filepath.Dir(fileName)
-		err := os.MkdirAll(dir, util.DefaultFileWritePermissions)
+		err := os.MkdirAll(dir, util.DefaultWritePermissions)
 		if err != nil {
 			return errors.Wrapf(err, "failed to create parent directory %s", dir)
 		}
+		log.Logger().Infof("created directory %s", dir)
 	}
 
 	sm, err := o.CreateSecretManager()
