@@ -3,6 +3,7 @@ package githelpers
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 
 	"github.com/google/uuid"
@@ -72,4 +73,29 @@ func GitCloneToTempDir(gitter gits.Gitter, gitURL string, dir string) (string, e
 		return "", errors.Wrapf(err, "failed to clone repository %s to directory: %s", gitURL, dir)
 	}
 	return dir, nil
+}
+
+// AddUserTokenToURLIfRequired ensures we have a user and token in the given git URL
+func AddUserTokenToURLIfRequired(gitURL, username, token string) (string, error) {
+	u, err := url.Parse(gitURL)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to parse git URL %s", gitURL)
+	}
+
+	// lets check if we've already got a user and password
+	if u.User != nil {
+		user := u.User
+		pwd, f := user.Password()
+		if user.Username() != "" && pwd != "" && f {
+			return gitURL, nil
+		}
+	}
+	if username == "" {
+		return "", fmt.Errorf("missing git username")
+	}
+	if token == "" {
+		return "", fmt.Errorf("missing git token")
+	}
+	u.User = url.UserPassword(username, token)
+	return u.String(), nil
 }

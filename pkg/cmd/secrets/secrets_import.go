@@ -79,5 +79,6 @@ func (o *ImportOptions) Run() error {
 		return errors.Wrapf(err, "failed to import Secrets YAML from secret manager %s", sm.String())
 	}
 	log.Logger().Infof("imported Secrets to %s from file: %s", sm.String(), util.ColorInfo(fileName))
-	return nil
+
+	return o.SaveBootRunGitCloneSecret(secretsYAML)
 }

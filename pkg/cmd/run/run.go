@@ -32,7 +32,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/yaml"
 )
 
 // RunOptions contains the command line arguments for this command
@@ -82,7 +81,7 @@ func NewCmdRun() *cobra.Command {
 	}
 	command.Flags().StringVarP(&options.Dir, "dir", "d", ".", "the directory to look for the Jenkins X Pipeline, requirements and charts")
 	command.Flags().StringVarP(&options.GitURL, "git-url", "u", "", "override the Git clone URL for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-ref as well")
-	command.Flags().StringVarP(&options.GitUserName, "git-username", "", "", "specify the git user name to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
+	command.Flags().StringVarP(&options.GitUserName, "git-user", "", "", "specify the git user name to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
 	command.Flags().StringVarP(&options.GitToken, "git-token", "", "", "specify the git token to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
 	command.Flags().StringVarP(&options.GitRef, "git-ref", "", "master", "override the Git ref for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-url as well")
 	command.Flags().StringVarP(&options.ChartName, "chart", "c", defaultChartName, "the chart name to use to install the boot Job")
@@ -115,7 +114,7 @@ func (o *RunOptions) Run() error {
 		bo.CommonOptions = opts.NewCommonOptionsWithTerm(f, os.Stdin, os.Stdout, os.Stderr)
 		bo.BatchMode = o.BatchMode
 	}
-	err := o.addUserPasswordForPrivateGitClone()
+	err := o.addUserPasswordForPrivateGitClone(true)
 	if err != nil {
 		return err
 	}
@@ -134,6 +133,12 @@ func (o *RunOptions) RunBootJob() error {
 	}
 	if gitURL == "" {
 		return util.MissingOption("git-url")
+	}
+
+	o.KindResolver.GitURL = gitURL
+	err = o.addUserPasswordForPrivateGitClone(false)
+	if err != nil {
+		return errors.Wrapf(err, "could not default the git user and token to clone the git URL")
 	}
 
 	clusterName := requirements.Cluster.ClusterName
@@ -373,9 +378,17 @@ func (o *RunOptions) verifySecretsYAML() error {
 	return nil
 }
 
-func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
+func (o *RunOptions) addUserPasswordForPrivateGitClone(inCluster bool) error {
 	if o.GitURL == "" {
-		log.Logger().Warnf("no git-url specified so cannot add the username/token")
+		// lets try load the git URL from the secret
+		gitURL, err := o.KindResolver.LoadBootRunGitURLFromSecret()
+		if err != nil {
+			return errors.Wrapf(err, "failed to load the boot git URL from the Secret")
+		}
+		if gitURL == "" {
+			log.Logger().Warnf("no git-url specified and no boot git URL Secret found")
+		}
+		o.GitURL = gitURL
 	}
 
 	u, err := url.Parse(o.GitURL)
@@ -395,6 +408,12 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
 	username := o.GitUserName
 	token := o.GitToken
 	if username == "" || token == "" {
+		if !inCluster {
+			if username == "" {
+				return util.MissingOption("git-user")
+			}
+			return util.MissingOption("git-token")
+		}
 		yamlFile := os.Getenv("JX_SECRETS_YAML")
 		if yamlFile == "" {
 			return errors.Errorf("no $JX_SECRETS_YAML defined")
@@ -404,30 +423,13 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone() error {
 			return errors.Wrapf(err, "failed to load secrets YAML %s", yamlFile)
 		}
 
-		yamlData := map[string]interface{}{}
-		err = yaml.Unmarshal(data, &yamlData)
+		message := fmt.Sprintf("secrets YAML %s", yamlFile)
+		username, token, err = secretmgr.PipelineUserTokenFromSecretsYAML(data, message)
 		if err != nil {
-			return errors.Wrapf(err, "failed to parse secrets YAML %s", yamlFile)
-		}
-
-		username = util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.username")
-		if username == "" {
-			log.Logger().Warnf("missing secret: secrets.pipelineUser.username")
-			return nil
-		}
-		token = util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.token")
-		if token == "" {
-			log.Logger().Warnf("missing secret: secrets.pipelineUser.token")
-			return nil
+			return err
 		}
 	}
 	u.User = url.UserPassword(username, token)
 	o.GitURL = u.String()
 	return nil
-}
-
-func warnNoSecret(ns, name string) {
-	log.Logger().Warnf("boot secret %s not found in namespace %s\n", name, ns)
-	log.Logger().Infof("Are you running in the correct namespace? To change namespaces see:     %s", util.ColorInfo("https://jenkins-x.io/docs/using-jx/developing/kube-context/"))
-	log.Logger().Infof("Did you remember to import or edit the secrets before running boot? see %s", util.ColorInfo("https://jenkins-x.io/docs/labs/boot/getting-started/secrets/"))
 }

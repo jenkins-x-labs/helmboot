@@ -195,7 +195,7 @@ func (o *EditOptions) Run() error {
 		return errors.Wrapf(err, "failed to update the Secrets YAML from secret manager %s", sm.String())
 	}
 	log.Logger().Infof("edited the Secrets in %s", sm.String())
-	return nil
+	return o.SaveBootRunGitCloneSecret(updatedYaml)
 }
 
 func (o *EditOptions) editSecretsYaml(secretsYaml string) (string, error) {

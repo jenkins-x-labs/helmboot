@@ -21,7 +21,6 @@ func AddRequirementsFlagsOptions(cmd *cobra.Command, flags *RequirementFlags) {
 	cmd.Flags().BoolVarP(&flags.Terraform, "terraform", "", false, "enables or disables the use of terraform")
 	cmd.Flags().BoolVarP(&flags.VaultRecreateBucket, "vault-recreate-bucket", "", false, "enables or disables whether to rereate the secret bucket on boot")
 	cmd.Flags().BoolVarP(&flags.VaultDisableURLDiscover, "vault-disable-url-discover", "", false, "override the default lookup of the Vault URL, could be incluster service or external ingress")
-	cmd.Flags().BoolVarP(&flags.ExternalDNS, "externaldns", "", false, "should we enable the ExternalDNS app to register DNS entries for Ingress resources")
 	cmd.Flags().BoolVarP(&flags.TLS, "tls", "", false, "enable TLS for Ingress")
 	cmd.Flags().StringVarP(&flags.Repository, "repository", "", "", "the artifact repository. Possible values are: "+strings.Join(config.RepositoryTypeValues, ", "))
 	cmd.Flags().StringVarP(&flags.IngressKind, "ingress-kind", "", "", "configures the kind of ingress used (e.g. whether to use Ingress or VirtualService resources. Possible values: "+strings.Join(config.IngressTypeValues, ", "))

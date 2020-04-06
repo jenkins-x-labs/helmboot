@@ -13,6 +13,13 @@ const (
 	// KindVault for a vault based secret manager
 	KindVault = "vault"
 
+	// BootGitURLSecret the name of the Kubernetes Secret used to store the git clone URL
+	/* #nosec */
+	BootGitURLSecret = "jx-boot-git-url"
+
+	// BootGitURLSecretKey the key in the Secret to store the git clone URL
+	BootGitURLSecretKey = "git-url"
+
 	// LocalSecret the name of the Kubernetes Secret used to load/store the
 	// secrets
 	/* #nosec */
