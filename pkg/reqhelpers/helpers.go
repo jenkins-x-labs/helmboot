@@ -372,25 +372,10 @@ func defaultStorage(storage *config.StorageEntryConfig) {
 // FindRequirementsAndGitURL tries to find the requirements and git URL via either environment or directory
 func FindRequirementsAndGitURL(jxFactory jxfactory.Factory, gitURLOption string, gitter gits.Gitter, dir string) (*config.RequirementsConfig, string, error) {
 	var requirements *config.RequirementsConfig
-	gitURL := ""
+	gitURL := gitURLOption
 
-	jxClient, ns, err := jxFactory.CreateJXClient()
-	if err != nil {
-		return requirements, gitURL, err
-	}
-	devEnv, err := kube.GetDevEnvironment(jxClient, ns)
-	if err != nil && !apierrors.IsNotFound(err) {
-		return requirements, gitURL, err
-	}
-	if devEnv != nil {
-		gitURL = devEnv.Spec.Source.URL
-		requirements, err = config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
-		if err != nil {
-			log.Logger().Debugf("failed to load requirements from team settings %s", err.Error())
-		}
-	}
+	var err error
 	if gitURLOption != "" {
-		gitURL = gitURLOption
 		if requirements == nil {
 			requirements, err = GetRequirementsFromGit(gitURL)
 			if err != nil {
@@ -398,7 +383,25 @@ func FindRequirementsAndGitURL(jxFactory jxfactory.Factory, gitURLOption string,
 			}
 		}
 	}
-
+	if gitURL == "" || requirements == nil {
+		jxClient, ns, err := jxFactory.CreateJXClient()
+		if err != nil {
+			return requirements, gitURL, err
+		}
+		devEnv, err := kube.GetDevEnvironment(jxClient, ns)
+		if err != nil && !apierrors.IsNotFound(err) {
+			return requirements, gitURL, err
+		}
+		if devEnv != nil {
+			if gitURL == "" {
+				gitURL = devEnv.Spec.Source.URL
+			}
+			requirements, err = config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
+			if err != nil {
+				log.Logger().Debugf("failed to load requirements from team settings %s", err.Error())
+			}
+		}
+	}
 	if requirements == nil {
 		requirements, _, err = config.LoadRequirementsConfig(dir)
 		if err != nil {

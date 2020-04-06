@@ -441,6 +441,8 @@ github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314 h1:kyBMx/
 github.com/jenkins-x/golang-jenkins v0.0.0-20180919102630-65b83ad42314/go.mod h1:C6j5HgwlHGjRU27W4XCs6jXksqYFo8OdBu+p44jqQeM=
 github.com/jenkins-x/jx v0.0.0-20200404075548-a31565a97e14 h1:f/WDrlENqWfqt93u1NNPczdLIK8BOf176zoDtZwN5Oc=
 github.com/jenkins-x/jx v0.0.0-20200404075548-a31565a97e14/go.mod h1:vxbWjM7FtYFr9lyEjjSkxcfQVHmBxbhNReJCiir1k9A=
+github.com/jenkins-x/jx v0.0.0-20200406060952-65b6c7cada5e h1:6l+oaUIdoqi3xiCPqEwNFP4RrtBARWowmkIn/WK/lNw=
+github.com/jenkins-x/jx v0.0.0-20200406060952-65b6c7cada5e/go.mod h1:vxbWjM7FtYFr9lyEjjSkxcfQVHmBxbhNReJCiir1k9A=
 github.com/jetstack/cert-manager v0.5.2 h1:qs74mdAprZ5kcCYF3arzmEAZtbt+9HneldSJrk21tKs=
 github.com/jetstack/cert-manager v0.5.2/go.mod h1:nbddmhjWxYGt04bxvwVGUSeLhZ2PCyNvd7MpXdq+yWY=
 github.com/jinzhu/gorm v0.0.0-20170316141641-572d0a0ab1eb/go.mod h1:Vla75njaFJ8clLU1W44h34PjIkijhjHIYnZxMqCdxqo=

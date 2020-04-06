@@ -31,7 +31,6 @@ import (
 	"github.com/jenkins-x/jx/pkg/versionstream/versionstreamrepo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -39,13 +38,13 @@ import (
 // RunOptions contains the command line arguments for this command
 type RunOptions struct {
 	boot.BootOptions
-	JXFactory   jxfactory.Factory
-	Gitter      gits.Gitter
-	ChartName   string
-	GitUserName string
-	GitToken    string
-	BatchMode   bool
-	JobMode     bool
+	KindResolver factory.KindResolver
+	Gitter       gits.Gitter
+	ChartName    string
+	GitUserName  string
+	GitToken     string
+	BatchMode    bool
+	JobMode      bool
 }
 
 var (
@@ -105,6 +104,8 @@ func NewCmdRun() *cobra.Command {
 
 // Run implements the command
 func (o *RunOptions) Run() error {
+	o.KindResolver.GitURL = o.GitURL
+	o.KindResolver.Dir = o.Dir
 	if (o.JobMode || !clienthelpers.IsInCluster()) && os.Getenv("JX_DEBUG_JOB") != "true" {
 		return o.RunBootJob()
 	}
@@ -185,8 +186,8 @@ func (o *RunOptions) RunBootJob() error {
 }
 
 func (o *RunOptions) tailJobLogs() error {
-	a := jxadapt.NewJXAdapter(o.JXFactory, o.Git(), o.BatchMode)
-	client, ns, err := o.JXFactory.CreateKubeClient()
+	a := jxadapt.NewJXAdapter(o.GetJXFactory(), o.Git(), o.BatchMode)
+	client, ns, err := o.GetJXFactory().CreateKubeClient()
 	if err != nil {
 		return err
 	}
@@ -235,17 +236,22 @@ func (o *RunOptions) Git() gits.Gitter {
 
 // findRequirementsAndGitURL tries to find the current boot configuration from the cluster
 func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, string, error) {
-	if o.JXFactory == nil {
-		o.JXFactory = jxfactory.NewFactory()
+	return reqhelpers.FindRequirementsAndGitURL(o.GetJXFactory(), o.GitURL, o.Git(), o.Dir)
+}
+
+// GetJXFactory lazy creates the factory if required
+func (o *RunOptions) GetJXFactory() jxfactory.Factory {
+	if o.KindResolver.Factory == nil {
+		o.KindResolver.Factory = jxfactory.NewFactory()
 	}
-	return reqhelpers.FindRequirementsAndGitURL(o.JXFactory, o.GitURL, o.Git(), o.Dir)
+	return o.KindResolver.Factory
 }
 
 func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
 	if requirements.SecretStorage == config.SecretStorageTypeVault {
 		return nil
 	}
-	kubeClient, ns, err := o.JXFactory.CreateKubeClient()
+	_, ns, err := o.GetJXFactory().CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
 	}
@@ -267,35 +273,26 @@ func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) e
 		ns = reqNs
 	}
 
-	name := secretmgr.LocalSecret
-	secret, err := kubeClient.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
+	o.KindResolver.Requirements = requirements
+	sm, err := o.KindResolver.CreateSecretManager()
 	if err != nil {
-		if apierrors.IsNotFound(err) {
-			warnNoSecret(ns, name)
-			return fmt.Errorf("boot secret %s not found in namespace %s. are you sure you are running this command in the right namespace and cluster", name, ns)
-		}
-		warnNoSecret(ns, name)
-		return errors.Wrapf(err, "failed to look for boot secret %s  in namespace %s", name, ns)
+		return errors.Wrap(err, "failed to create Secrets manager")
 	}
 
-	if secret == nil {
-		return fmt.Errorf("null boot secret %s found in namespace %s. are you sure you are running this command in the right namespace and cluster", name, ns)
+	secretYaml := ""
+	err = sm.UpsertSecrets(func(s string) (string, error) {
+		secretYaml = s
+		return s, nil
+	}, "")
+	if err != nil {
+		return errors.Wrap(err, "failed to load Secrets YAML")
 	}
-
-	key := "secrets.yaml"
-	found := false
-	if secret.Data != nil {
-		data := secret.Data[key]
-		if len(data) > 0 {
-			found = true
-			err := secretmgr.VerifyBootSecrets(string(data))
-			if err != nil {
-				return errors.Wrapf(err, "invalid secrets yaml in kubernetes secret %s in namespace %s. Please run 'jxl boot secrets edit' to populate them", name, ns)
-			}
-		}
+	if secretYaml == "" {
+		return fmt.Errorf("no secrets YAML found. Please run 'jxl boot secrets edit' to populate them")
 	}
-	if !found {
-		return fmt.Errorf("boot secret %s in namespace %s does not contain key: %s", name, ns, key)
+	err = secretmgr.VerifyBootSecrets(secretYaml)
+	if err != nil {
+		return errors.Wrapf(err, "invalid secrets yaml looking in namespace %s. Please run 'jxl boot secrets edit' to populate them", ns)
 	}
 	return nil
 }
@@ -350,11 +347,8 @@ func (o *RunOptions) verifySecretsYAML() error {
 		return errors.Wrapf(err, "failed to verify secrets YAML file exists: %s", yamlFile)
 	}
 	eo := &secrets.ExportOptions{
-		KindResolver: factory.KindResolver{
-			Factory: o.JXFactory,
-			GitURL:  o.GitURL,
-		},
-		OutFile: yamlFile,
+		KindResolver: o.KindResolver,
+		OutFile:      yamlFile,
 	}
 	if !exists {
 		// lets export the secrets to the yaml file
