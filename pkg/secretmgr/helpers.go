@@ -3,6 +3,7 @@ package secretmgr
 import (
 	"strings"
 
+	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/yaml"
@@ -49,6 +50,27 @@ func ToSecretsYAML(values map[string]interface{}) (string, error) {
 		return "", errors.Wrap(err, "failed to marshal data to YAML")
 	}
 	return string(data), nil
+}
+
+// PipelineUserTokenFromSecretsYAML returns the pipeline user and token from the Secrets YAML
+func PipelineUserTokenFromSecretsYAML(data []byte, message string) (string, string, error) {
+	yamlData := map[string]interface{}{}
+	err := yaml.Unmarshal(data, &yamlData)
+	if err != nil {
+		return "", "", errors.Wrapf(err, "failed to parse %s", message)
+	}
+
+	username := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.username")
+	if username == "" {
+		log.Logger().Warnf("missing secret: secrets.pipelineUser.username")
+		return "", "", nil
+	}
+	token := util.GetMapValueAsStringViaPath(yamlData, "secrets.pipelineUser.token")
+	if token == "" {
+		log.Logger().Warnf("missing secret: secrets.pipelineUser.token")
+		return "", "", nil
+	}
+	return username, token, nil
 }
 
 // RemoveMapEmptyValues recursively removes all empty string or nil entries

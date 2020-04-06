@@ -26,7 +26,7 @@ type RequirementFlags struct {
 	IngressKind                                                     string
 	SecretStorage                                                   string
 	AutoUpgrade, EnvironmentGitPublic, GitPublic, EnvironmentRemote bool
-	GitOps, Kaniko, Terraform, ExternalDNS, TLS                     bool
+	GitOps, Kaniko, Terraform, TLS                                  bool
 	VaultRecreateBucket, VaultDisableURLDiscover                    bool
 }
 
@@ -219,12 +219,6 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 			modified = true
 		}
 	}
-	if shouldHaveExternalDNS(requirements) {
-		if addApp(apps, "bitnami/external-dns", "jenkins-x/jxboot-helmfile-resources") {
-			modified = true
-		}
-	}
-
 	if modified {
 		err = apps.SaveConfig(appsFileName)
 		if err != nil {
@@ -236,10 +230,6 @@ func ValidateApps(dir string) (*config.AppConfig, string, error) {
 
 func shouldHaveCertManager(requirements *config.RequirementsConfig) bool {
 	return requirements.Ingress.TLS.Enabled && requirements.Ingress.TLS.SecretName == ""
-}
-
-func shouldHaveExternalDNS(requirements *config.RequirementsConfig) bool {
-	return requirements.Ingress.ExternalDNS
 }
 
 func addApp(apps *config.AppConfig, chartName string, beforeName string) bool {
@@ -281,9 +271,6 @@ func applyDefaults(cmd *cobra.Command, r *config.RequirementsConfig, flags *Requ
 	}
 	if FlagChanged(cmd, "env-git-public") {
 		r.Cluster.EnvironmentGitPublic = flags.EnvironmentGitPublic
-	}
-	if FlagChanged(cmd, "externaldns") {
-		r.Ingress.ExternalDNS = flags.ExternalDNS
 	}
 	if FlagChanged(cmd, "git-public") {
 		r.Cluster.GitPublic = flags.GitPublic

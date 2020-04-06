@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
@@ -12,6 +13,7 @@ import (
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -121,6 +123,9 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 		return r.Requirements, ns, nil
 	}
 	if dev != nil {
+		if r.GitURL == "" {
+			r.GitURL = dev.Spec.Source.URL
+		}
 		requirements, err := config.GetRequirementsConfigFromTeamSettings(&dev.Spec.TeamSettings)
 		if err != nil {
 			return nil, ns, errors.Wrapf(err, "failed to unmarshal requirements from 'dev' Environment in namespace %s", ns)
@@ -139,4 +144,86 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 		return requirements, ns, errors.Wrapf(err, "failed to requirements YAML file from %s", r.Dir)
 	}
 	return requirements, ns, nil
+}
+
+// SaveBootRunGitCloneSecret saves the git URL used to clone the git repository with the necessary user and token
+// so that we can clone private repositories
+func (r *KindResolver) SaveBootRunGitCloneSecret(secretsYAML string) error {
+	if r.GitURL == "" {
+		return fmt.Errorf("no development environment git URL detected")
+	}
+	user, token, err := secretmgr.PipelineUserTokenFromSecretsYAML([]byte(secretsYAML), "secrets YAML")
+	if err != nil {
+		return errors.Wrap(err, "failed to find pipeline git user and token from secrets YAML")
+	}
+	if user == "" {
+		return fmt.Errorf("missing secrets.pipelineUser.username")
+	}
+	if token == "" {
+		return fmt.Errorf("missing secrets.pipelineUser.token")
+	}
+	gitURL, err := githelpers.AddUserTokenToURLIfRequired(r.GitURL, user, token)
+	if err != nil {
+		return errors.Wrapf(err, "failed to add git user and token into give URL %s", r.GitURL)
+	}
+
+	kubeClient, ns, err := r.Factory.CreateKubeClient()
+	if err != nil {
+		return errors.Wrap(err, "failed to create Kubernetes client")
+	}
+	name := secretmgr.BootGitURLSecret
+	create := false
+	secretInterface := kubeClient.CoreV1().Secrets(ns)
+	s, err := secretInterface.Get(name, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return errors.Wrapf(err, "failed to get Secret %s in namespace %s", name, ns)
+		}
+		create = true
+	}
+	if s == nil {
+		s = &corev1.Secret{}
+	}
+	s.Name = name
+	if s.Data == nil {
+		s.Data = map[string][]byte{}
+	}
+	s.Data[secretmgr.BootGitURLSecretKey] = []byte(gitURL)
+	if create {
+		_, err = secretInterface.Create(s)
+		if err != nil {
+			return errors.Wrapf(err, "failed to save Git URL secret %s in namespace %s", name, ns)
+		}
+	} else {
+		_, err = secretInterface.Update(s)
+		if err != nil {
+			return errors.Wrapf(err, "failed to update Git URL secret %s in namespace %s", name, ns)
+		}
+	}
+	return nil
+}
+
+// LoadBootRunGitURLFromSecret loads the boot run git clone URL from the secret
+func (r *KindResolver) LoadBootRunGitURLFromSecret() (string, error) {
+	kubeClient, ns, err := r.Factory.CreateKubeClient()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to create Kubernetes client")
+	}
+	name := secretmgr.BootGitURLSecret
+	key := secretmgr.BootGitURLSecretKey
+	s, err := kubeClient.CoreV1().Secrets(ns).Get(name, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return "", errors.Wrapf(err, "failed to get Secret %s in namespace %s. Please check you setup the boot secrets", name, ns)
+		}
+	}
+
+	var answer []byte
+	if s.Data != nil {
+		answer = s.Data[key]
+	}
+	if len(answer) == 0 {
+		return "", errors.Errorf("no key %s in Secret %s in namespace %s. Please check you setup the boot secrets", key, name, ns)
+	}
+	return string(answer), nil
 }

@@ -24,7 +24,7 @@ const (
   hmacToken:  TODO
   pipelineUser:
     username: someuser 
-    token: dummmytoken 
+    token: dummytoken 
     email: me@foo.com
 `
 )
@@ -40,6 +40,7 @@ func TestImportExportCommands(t *testing.T) {
 	ns := "jx"
 	devEnv := kube.CreateDefaultDevEnvironment(ns)
 	devEnv.Namespace = ns
+	devEnv.Spec.Source.URL = "https://github.com/dummyowner/environment-dummycluster-dev.git"
 	req, err := config.GetRequirementsConfigFromTeamSettings(&devEnv.Spec.TeamSettings)
 	if req == nil || err != nil {
 		// lets populate some dummy requirements
@@ -83,5 +84,11 @@ func TestImportExportCommands(t *testing.T) {
 
 	err = vo.Run()
 	require.NoError(t, err, "should not have failed to to verify secrets after they are imported")
+
+	// now lets verify we can get a git URL from the secret
+	gitURL, err := io.KindResolver.LoadBootRunGitURLFromSecret()
+	require.NoError(t, err, "failed to read the git URL from the secret")
+
+	assert.Equal(t, "https://someuser:dummytoken@github.com/dummyowner/environment-dummycluster-dev.git", gitURL, "loaded git URL from the boot run Secret")
 
 }
