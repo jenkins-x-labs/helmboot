@@ -103,7 +103,6 @@ func NewCmdRun() *cobra.Command {
 
 // Run implements the command
 func (o *RunOptions) Run() error {
-	o.KindResolver.GitURL = o.GitURL
 	o.KindResolver.Dir = o.Dir
 	if (o.JobMode || !clienthelpers.IsInCluster()) && os.Getenv("JX_DEBUG_JOB") != "true" {
 		return o.RunBootJob()
@@ -118,6 +117,7 @@ func (o *RunOptions) Run() error {
 	if err != nil {
 		return err
 	}
+	o.KindResolver.GitURL = gitURL
 	err = o.verifySecretsYAML()
 	if err != nil {
 		return err
@@ -135,11 +135,11 @@ func (o *RunOptions) RunBootJob() error {
 		return util.MissingOption("git-url")
 	}
 
-	o.KindResolver.GitURL = gitURL
 	err = o.addUserPasswordForPrivateGitClone(false)
 	if err != nil {
 		return errors.Wrapf(err, "could not default the git user and token to clone the git URL")
 	}
+	o.KindResolver.GitURL = gitURL
 
 	clusterName := requirements.Cluster.ClusterName
 	log.Logger().Infof("running helmboot Job for cluster %s with git URL %s", util.ColorInfo(clusterName), util.ColorInfo(gitURL))
