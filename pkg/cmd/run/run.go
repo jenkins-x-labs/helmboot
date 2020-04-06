@@ -117,7 +117,6 @@ func (o *RunOptions) Run() error {
 	if err != nil {
 		return err
 	}
-	o.KindResolver.GitURL = gitURL
 	err = o.verifySecretsYAML()
 	if err != nil {
 		return err
@@ -139,7 +138,6 @@ func (o *RunOptions) RunBootJob() error {
 	if err != nil {
 		return errors.Wrapf(err, "could not default the git user and token to clone the git URL")
 	}
-	o.KindResolver.GitURL = gitURL
 
 	clusterName := requirements.Cluster.ClusterName
 	log.Logger().Infof("running helmboot Job for cluster %s with git URL %s", util.ColorInfo(clusterName), util.ColorInfo(gitURL))
@@ -389,6 +387,7 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone(inCluster bool) error {
 			log.Logger().Warnf("no git-url specified and no boot git URL Secret found")
 		}
 		o.GitURL = gitURL
+		o.KindResolver.GitURL = o.GitURL
 	}
 
 	u, err := url.Parse(o.GitURL)
@@ -431,5 +430,6 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone(inCluster bool) error {
 	}
 	u.User = url.UserPassword(username, token)
 	o.GitURL = u.String()
+	o.KindResolver.GitURL = o.GitURL
 	return nil
 }
