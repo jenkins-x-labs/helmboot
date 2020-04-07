@@ -124,6 +124,13 @@ func (r *KindResolver) resolveRequirements(secretsYAML string) (*config.Requirem
 		return nil, ns, errors.Wrap(err, "failed to create JX Client")
 	}
 
+	if r.GitURL == "" {
+		r.GitURL, err = r.LoadBootRunGitURLFromSecret()
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
 	dev, err := kube.GetDevEnvironment(jxClient, ns)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return nil, ns, errors.Wrap(err, "failed to find the 'dev' Environment resource")
@@ -142,12 +149,6 @@ func (r *KindResolver) resolveRequirements(secretsYAML string) (*config.Requirem
 		}
 		if requirements != nil {
 			return requirements, ns, nil
-		}
-	}
-	if r.GitURL == "" {
-		r.GitURL, err = r.LoadBootRunGitURLFromSecret()
-		if err != nil {
-			return nil, "", err
 		}
 	}
 	if r.GitURL != "" {
