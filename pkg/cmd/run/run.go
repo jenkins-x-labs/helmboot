@@ -426,7 +426,7 @@ func (o *RunOptions) detectGitURL() error {
 			log.Logger().Warnf("no git-url specified and no boot git URL Secret found")
 		}
 		o.GitURL = gitURL
-		o.KindResolver.GitURL = o.GitURL
 	}
+	o.KindResolver.GitURL = o.GitURL
 	return nil
 }

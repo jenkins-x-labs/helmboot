@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	vaultapi "github.com/hashicorp/vault/api"
 	"github.com/jenkins-x-labs/helmboot/pkg/clienthelpers"
@@ -78,7 +79,11 @@ func (f *Factory) NewClient() (*vaultapi.Client, error) {
 		if certFile == "" {
 			certFile = f.CertFile
 			if certFile == "" {
-				certFile = defaultCertPath
+				tmpDir, err := ioutil.TempDir("", "")
+				if err != nil {
+					return nil, errors.Wrap(err, "failed to create a temp dir for the vault cert")
+				}
+				certFile = filepath.Join(tmpDir, defaultCertPath)
 			}
 			os.Setenv(vaultapi.EnvVaultCACert, certFile)
 		}
