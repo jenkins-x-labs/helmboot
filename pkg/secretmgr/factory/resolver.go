@@ -232,11 +232,8 @@ func (r *KindResolver) LoadBootRunGitURLFromSecret() (string, error) {
 	}
 
 	var answer []byte
-	if s.Data != nil {
+	if s != nil && s.Data != nil {
 		answer = s.Data[key]
-	}
-	if len(answer) == 0 {
-		return "", errors.Errorf("no key %s in Secret %s in namespace %s. Please check you setup the boot secrets", key, name, ns)
 	}
 	return string(answer), nil
 }
