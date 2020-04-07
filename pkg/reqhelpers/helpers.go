@@ -128,11 +128,28 @@ func GetRequirementsFromGit(gitURL string) (*config.RequirementsConfig, error) {
 }
 
 // OverrideRequirements allows CLI overrides
-func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputRequirements *config.RequirementsConfig, flags *RequirementFlags) error {
+func OverrideRequirements(cmd *cobra.Command, args []string, dir string, customRequirementsFile string, outputRequirements *config.RequirementsConfig, flags *RequirementFlags) error {
 	requirements, fileName, err := config.LoadRequirementsConfig(dir)
 	if err != nil {
 		return err
 	}
+
+	if customRequirementsFile != "" {
+		exists, err := util.FileExists(customRequirementsFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to check if file exists: %s", customRequirementsFile)
+		}
+		if !exists {
+			return fmt.Errorf("custom requirements file %s does not exist", customRequirementsFile)
+		}
+		requirements, err = config.LoadRequirementsConfigFile(customRequirementsFile)
+		if err != nil {
+			return errors.Wrapf(err, "failed to load: %s", customRequirementsFile)
+		}
+
+		UpgradeExistingRequirements(requirements)
+	}
+
 	*outputRequirements = *requirements
 
 	// lets re-parse the CLI arguments to re-populate the loaded requirements
@@ -171,6 +188,12 @@ func OverrideRequirements(cmd *cobra.Command, args []string, dir string, outputR
 
 	log.Logger().Infof("saved file: %s", util.ColorInfo(fileName))
 	return nil
+}
+
+// UpgradeExistingRequirements updates a custom requirements file for helm 3
+func UpgradeExistingRequirements(requirements *config.RequirementsConfig) {
+	requirements.GitOps = true
+	requirements.Helmfile = true
 }
 
 // ValidateApps validates the apps match the requirements

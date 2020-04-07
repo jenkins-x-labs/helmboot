@@ -86,7 +86,7 @@ func (o *VerifyOptions) Run() error {
 		return err
 	}
 
-	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, &o.OverrideRequirements, &o.Flags)
+	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, "", &o.OverrideRequirements, &o.Flags)
 	if err != nil {
 		return errors.Wrapf(err, "failed to override requirements in dir %s", dir)
 	}

@@ -47,7 +47,7 @@ func (u *HelmfileUpgrader) ExportRequirements() (*config.RequirementsConfig, err
 			}
 		}
 	}
-	u.UpgradeExistingRequirements(answer)
+	reqhelpers.UpgradeExistingRequirements(answer)
 
 	// if the environment git owner is missing lets default it from the dev team settings
 	if answer.Cluster.EnvironmentGitOwner == "" {
@@ -126,11 +126,6 @@ func (u *HelmfileUpgrader) GetOrCreateEnvironment(e *v1.Environment, requirement
 	}
 	requirements.Environments = append(requirements.Environments, env)
 	return &env
-}
-
-func (u *HelmfileUpgrader) UpgradeExistingRequirements(requirements *config.RequirementsConfig) {
-	requirements.GitOps = true
-	requirements.Helmfile = true
 }
 
 // GitKind returns the git kind for the development environment or empty string if it can't be found
