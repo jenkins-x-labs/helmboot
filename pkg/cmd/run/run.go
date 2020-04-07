@@ -36,13 +36,16 @@ import (
 // RunOptions contains the command line arguments for this command
 type RunOptions struct {
 	boot.BootOptions
-	KindResolver factory.KindResolver
-	Gitter       gits.Gitter
-	ChartName    string
-	GitUserName  string
-	GitToken     string
-	BatchMode    bool
-	JobMode      bool
+	KindResolver    factory.KindResolver
+	Gitter          gits.Gitter
+	ChartName       string
+	ChartVersion    string
+	ImageRepository string
+	ImageTag        string
+	GitUserName     string
+	GitToken        string
+	BatchMode       bool
+	JobMode         bool
 }
 
 var (
@@ -84,6 +87,9 @@ func NewCmdRun() *cobra.Command {
 	command.Flags().StringVarP(&options.GitToken, "git-token", "", "", "specify the git token to clone the development git repository. If not specified it is found from the secrets at $JX_SECRETS_YAML")
 	command.Flags().StringVarP(&options.GitRef, "git-ref", "", "master", "override the Git ref for the JX Boot source to start from, ignoring the versions stream. Normally specified with git-url as well")
 	command.Flags().StringVarP(&options.ChartName, "chart", "c", defaultChartName, "the chart name to use to install the boot Job")
+	command.Flags().StringVarP(&options.ChartVersion, "chart-version", "", "", "override the helm chart version used for the boot Job")
+	command.Flags().StringVarP(&options.ImageRepository, "image-repository", "", "", "override the default docker image repository used by the boot job")
+	command.Flags().StringVarP(&options.ImageTag, "image-tag", "", "", "override the default docker image tag used by the boot job")
 	command.Flags().StringVarP(&options.VersionStreamURL, "versions-repo", "", common.DefaultVersionsURL, "the bootstrap URL for the versions repo. Once the boot config is cloned, the repo will be then read from the jx-requirements.yml")
 	command.Flags().StringVarP(&options.VersionStreamRef, "versions-ref", "", common.DefaultVersionsRef, "the bootstrap ref for the versions repo. Once the boot config is cloned, the repo will be then read from the jx-requirements.yml")
 	command.Flags().StringVarP(&options.HelmLogLevel, "helm-log", "v", "", "sets the helm logging level from 0 to 9. Passed into the helm CLI via the '-v' argument. Useful to diagnose helm related issues")
@@ -172,12 +178,14 @@ func (o *RunOptions) RunBootJob() error {
 		log.Logger().Warnf("failed to update helm repositories: %s", err.Error())
 	}
 
-	version, err := o.findChartVersion(requirements)
-	if err != nil {
-		return err
+	if o.ChartVersion == "" {
+		o.ChartVersion, err = o.findChartVersion(requirements)
+		if err != nil {
+			return err
+		}
 	}
 
-	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName, version)
+	c = reqhelpers.GetBootJobCommand(requirements, gitURL, o.ChartName, o.ChartVersion, o.ImageRepository, o.ImageTag)
 
 	commandLine := fmt.Sprintf("%s %s", c.Name, strings.Join(c.Args, " "))
 
