@@ -66,7 +66,7 @@ func (o *ImportOptions) Run() error {
 	}
 
 	secretsYAML := string(data)
-	sm, err := o.CreateSecretManager()
+	sm, err := o.CreateSecretManager(secretsYAML)
 	if err != nil {
 		return err
 	}

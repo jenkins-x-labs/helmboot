@@ -91,7 +91,7 @@ func (o *ExportOptions) Run() error {
 		log.Logger().Infof("created directory %s", dir)
 	}
 
-	sm, err := o.CreateSecretManager()
+	sm, err := o.CreateSecretManager("")
 	if err != nil {
 		return err
 	}
