@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/reqhelpers"
 	"github.com/jenkins-x-labs/helmboot/pkg/secretmgr"
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
@@ -31,12 +30,9 @@ type KindResolver struct {
 }
 
 // CreateSecretManager detects from the current cluster which kind of SecretManager to use and then creates it
-func (r *KindResolver) CreateSecretManager() (secretmgr.SecretManager, error) {
-	if r.Factory == nil {
-		r.Factory = jxfactory.NewFactory()
-	}
+func (r *KindResolver) CreateSecretManager(secretsYAML string) (secretmgr.SecretManager, error) {
 	// lets try find the requirements from the cluster or locally
-	requirements, ns, err := r.resolveRequirements()
+	requirements, ns, err := r.resolveRequirements(secretsYAML)
 	if err != nil {
 		return nil, err
 	}
@@ -57,13 +53,21 @@ func (r *KindResolver) CreateSecretManager() (secretmgr.SecretManager, error) {
 			r.Kind = secretmgr.KindLocal
 		}
 	}
-	return NewSecretManager(r.Kind, r.Factory, requirements)
+	return NewSecretManager(r.Kind, r.GetFactory(), requirements)
+}
+
+// GetFactory lazy creates the factory if required
+func (r *KindResolver) GetFactory() jxfactory.Factory {
+	if r.Factory == nil {
+		r.Factory = jxfactory.NewFactory()
+	}
+	return r.Factory
 }
 
 // VerifySecrets verifies that the secrets are valid
 func (r *KindResolver) VerifySecrets() error {
 	secretsYAML := ""
-	sm, err := r.CreateSecretManager()
+	sm, err := r.CreateSecretManager("")
 	if err != nil {
 		return err
 	}
@@ -85,13 +89,19 @@ func (r *KindResolver) VerifySecrets() error {
 }
 
 func (r *KindResolver) resolveKind(requirements *config.RequirementsConfig) (string, error) {
-	if requirements.SecretStorage == config.SecretStorageTypeVault {
+	switch requirements.SecretStorage {
+	case config.SecretStorageTypeVault:
 		return secretmgr.KindVault, nil
+
+	case config.SecretStorageTypeGSM:
+		if requirements.Cluster.Provider != cloud.GKE {
+			return "", fmt.Errorf("google secret manager (GSM) secret store is only supported on the GKE provider")
+		}
+		return secretmgr.KindGoogleSecretManager, nil
 	}
 	if requirements.Cluster.Provider == cloud.GKE {
 		// lets check if we have a Local secret otherwise default to Google
-
-		kubeClient, ns, err := r.Factory.CreateKubeClient()
+		kubeClient, ns, err := r.GetFactory().CreateKubeClient()
 		if err != nil {
 			return "", errors.Wrap(err, "failed to create Kubernetes client")
 		}
@@ -108,8 +118,8 @@ func (r *KindResolver) resolveKind(requirements *config.RequirementsConfig) (str
 	return secretmgr.KindLocal, nil
 }
 
-func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string, error) {
-	jxClient, ns, err := r.Factory.CreateJXClient()
+func (r *KindResolver) resolveRequirements(secretsYAML string) (*config.RequirementsConfig, string, error) {
+	jxClient, ns, err := r.GetFactory().CreateJXClient()
 	if err != nil {
 		return nil, ns, errors.Wrap(err, "failed to create JX Client")
 	}
@@ -134,7 +144,19 @@ func (r *KindResolver) resolveRequirements() (*config.RequirementsConfig, string
 			return requirements, ns, nil
 		}
 	}
+	if r.GitURL == "" {
+		r.GitURL, err = r.LoadBootRunGitURLFromSecret()
+		if err != nil {
+			return nil, "", err
+		}
+	}
 	if r.GitURL != "" {
+		if secretsYAML != "" {
+			r.GitURL, err = secretmgr.AddUserTokenToGitURLFromSecretsYAML(r.GitURL, secretsYAML)
+			if err != nil {
+				return nil, "", errors.Wrap(err, "failed to enrich git URL with user and token from the secrets YAML")
+			}
+		}
 		requirements, err := reqhelpers.GetRequirementsFromGit(r.GitURL)
 		return requirements, ns, err
 	}
@@ -152,22 +174,12 @@ func (r *KindResolver) SaveBootRunGitCloneSecret(secretsYAML string) error {
 	if r.GitURL == "" {
 		return fmt.Errorf("no development environment git URL detected")
 	}
-	user, token, err := secretmgr.PipelineUserTokenFromSecretsYAML([]byte(secretsYAML), "secrets YAML")
+	var err error
+	r.GitURL, err = secretmgr.AddUserTokenToGitURLFromSecretsYAML(r.GitURL, secretsYAML)
 	if err != nil {
-		return errors.Wrap(err, "failed to find pipeline git user and token from secrets YAML")
+		return err
 	}
-	if user == "" {
-		return fmt.Errorf("missing secrets.pipelineUser.username")
-	}
-	if token == "" {
-		return fmt.Errorf("missing secrets.pipelineUser.token")
-	}
-	gitURL, err := githelpers.AddUserTokenToURLIfRequired(r.GitURL, user, token)
-	if err != nil {
-		return errors.Wrapf(err, "failed to add git user and token into give URL %s", r.GitURL)
-	}
-
-	kubeClient, ns, err := r.Factory.CreateKubeClient()
+	kubeClient, ns, err := r.GetFactory().CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create Kubernetes client")
 	}
@@ -188,7 +200,7 @@ func (r *KindResolver) SaveBootRunGitCloneSecret(secretsYAML string) error {
 	if s.Data == nil {
 		s.Data = map[string][]byte{}
 	}
-	s.Data[secretmgr.BootGitURLSecretKey] = []byte(gitURL)
+	s.Data[secretmgr.BootGitURLSecretKey] = []byte(r.GitURL)
 	if create {
 		_, err = secretInterface.Create(s)
 		if err != nil {
@@ -205,7 +217,7 @@ func (r *KindResolver) SaveBootRunGitCloneSecret(secretsYAML string) error {
 
 // LoadBootRunGitURLFromSecret loads the boot run git clone URL from the secret
 func (r *KindResolver) LoadBootRunGitURLFromSecret() (string, error) {
-	kubeClient, ns, err := r.Factory.CreateKubeClient()
+	kubeClient, ns, err := r.GetFactory().CreateKubeClient()
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create Kubernetes client")
 	}

@@ -23,7 +23,6 @@ import (
 	"github.com/jenkins-x/jx/pkg/cmd/templates"
 	"github.com/jenkins-x/jx/pkg/config"
 	"github.com/jenkins-x/jx/pkg/gits"
-	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
@@ -126,7 +125,11 @@ func (o *RunOptions) Run() error {
 
 // RunBootJob runs the boot installer Job
 func (o *RunOptions) RunBootJob() error {
-	requirements, gitURL, err := o.findRequirementsAndGitURL()
+	err := o.detectGitURL()
+	if err != nil {
+		return err
+	}
+	requirements, gitURL, err := reqhelpers.FindRequirementsAndGitURL(o.KindResolver.GetFactory(), o.GitURL, o.Git(), o.Dir)
 	if err != nil {
 		return err
 	}
@@ -189,8 +192,8 @@ func (o *RunOptions) RunBootJob() error {
 }
 
 func (o *RunOptions) tailJobLogs() error {
-	a := jxadapt.NewJXAdapter(o.GetJXFactory(), o.Git(), o.BatchMode)
-	client, ns, err := o.GetJXFactory().CreateKubeClient()
+	a := jxadapt.NewJXAdapter(o.KindResolver.GetFactory(), o.Git(), o.BatchMode)
+	client, ns, err := o.KindResolver.GetFactory().CreateKubeClient()
 	if err != nil {
 		return err
 	}
@@ -237,24 +240,11 @@ func (o *RunOptions) Git() gits.Gitter {
 	return o.Gitter
 }
 
-// findRequirementsAndGitURL tries to find the current boot configuration from the cluster
-func (o *RunOptions) findRequirementsAndGitURL() (*config.RequirementsConfig, string, error) {
-	return reqhelpers.FindRequirementsAndGitURL(o.GetJXFactory(), o.GitURL, o.Git(), o.Dir)
-}
-
-// GetJXFactory lazy creates the factory if required
-func (o *RunOptions) GetJXFactory() jxfactory.Factory {
-	if o.KindResolver.Factory == nil {
-		o.KindResolver.Factory = jxfactory.NewFactory()
-	}
-	return o.KindResolver.Factory
-}
-
 func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) error {
 	if requirements.SecretStorage == config.SecretStorageTypeVault {
 		return nil
 	}
-	_, ns, err := o.GetJXFactory().CreateKubeClient()
+	_, ns, err := o.KindResolver.GetFactory().CreateKubeClient()
 	if err != nil {
 		return errors.Wrap(err, "failed to create kube client")
 	}
@@ -277,7 +267,7 @@ func (o *RunOptions) verifyBootSecret(requirements *config.RequirementsConfig) e
 	}
 
 	o.KindResolver.Requirements = requirements
-	sm, err := o.KindResolver.CreateSecretManager()
+	sm, err := o.KindResolver.CreateSecretManager("")
 	if err != nil {
 		return errors.Wrap(err, "failed to create Secrets manager")
 	}
@@ -377,19 +367,10 @@ func (o *RunOptions) verifySecretsYAML() error {
 }
 
 func (o *RunOptions) addUserPasswordForPrivateGitClone(inCluster bool) error {
-	if o.GitURL == "" {
-		// lets try load the git URL from the secret
-		gitURL, err := o.KindResolver.LoadBootRunGitURLFromSecret()
-		if err != nil {
-			return errors.Wrapf(err, "failed to load the boot git URL from the Secret")
-		}
-		if gitURL == "" {
-			log.Logger().Warnf("no git-url specified and no boot git URL Secret found")
-		}
-		o.GitURL = gitURL
-		o.KindResolver.GitURL = o.GitURL
+	err := o.detectGitURL()
+	if err != nil {
+		return err
 	}
-
 	u, err := url.Parse(o.GitURL)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse git URL %s", o.GitURL)
@@ -431,5 +412,21 @@ func (o *RunOptions) addUserPasswordForPrivateGitClone(inCluster bool) error {
 	u.User = url.UserPassword(username, token)
 	o.GitURL = u.String()
 	o.KindResolver.GitURL = o.GitURL
+	return nil
+}
+
+func (o *RunOptions) detectGitURL() error {
+	if o.GitURL == "" {
+		// lets try load the git URL from the secret
+		gitURL, err := o.KindResolver.LoadBootRunGitURLFromSecret()
+		if err != nil {
+			return errors.Wrapf(err, "failed to load the boot git URL from the Secret")
+		}
+		if gitURL == "" {
+			log.Logger().Warnf("no git-url specified and no boot git URL Secret found")
+		}
+		o.GitURL = gitURL
+		o.KindResolver.GitURL = o.GitURL
+	}
 	return nil
 }

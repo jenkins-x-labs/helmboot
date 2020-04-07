@@ -1,8 +1,10 @@
 package secretmgr
 
 import (
+	"fmt"
 	"strings"
 
+	"github.com/jenkins-x-labs/helmboot/pkg/githelpers"
 	"github.com/jenkins-x/jx/pkg/log"
 	"github.com/jenkins-x/jx/pkg/util"
 	"github.com/pkg/errors"
@@ -71,6 +73,25 @@ func PipelineUserTokenFromSecretsYAML(data []byte, message string) (string, stri
 		return "", "", nil
 	}
 	return username, token, nil
+}
+
+// AddUserTokenToGitURLFromSecretsYAML adds the user/token to the git URL if the secrets YAML is not empty
+func AddUserTokenToGitURLFromSecretsYAML(gitURL string, secretsYAML string) (string, error) {
+	user, token, err := PipelineUserTokenFromSecretsYAML([]byte(secretsYAML), "secrets YAML")
+	if err != nil {
+		return "", errors.Wrap(err, "failed to find pipeline git user and token from secrets YAML")
+	}
+	if user == "" {
+		return "", fmt.Errorf("missing secrets.pipelineUser.username")
+	}
+	if token == "" {
+		return "", fmt.Errorf("missing secrets.pipelineUser.token")
+	}
+	gitURL, err = githelpers.AddUserTokenToURLIfRequired(gitURL, user, token)
+	if err != nil {
+		return "", errors.Wrapf(err, "failed to add git user and token into give URL %s", gitURL)
+	}
+	return gitURL, nil
 }
 
 // RemoveMapEmptyValues recursively removes all empty string or nil entries

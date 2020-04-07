@@ -169,7 +169,7 @@ func NewCmdEdit() (*cobra.Command, *EditOptions) {
 
 // Run implements the command
 func (o *EditOptions) Run() error {
-	sm, err := o.CreateSecretManager()
+	sm, err := o.CreateSecretManager("")
 	if err != nil {
 		return err
 	}
