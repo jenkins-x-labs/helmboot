@@ -194,6 +194,7 @@ func OverrideRequirements(cmd *cobra.Command, args []string, dir string, customR
 func UpgradeExistingRequirements(requirements *config.RequirementsConfig) {
 	requirements.GitOps = true
 	requirements.Helmfile = true
+	requirements.Webhook = config.WebhookTypeLighthouse
 }
 
 // ValidateApps validates the apps match the requirements
