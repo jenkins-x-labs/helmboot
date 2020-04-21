@@ -1,5 +1,9 @@
 # helmboot
 
+**NOTE: This current experiment is now closed. The work done and feedback we have received will be used to enhance Jenkins X in future versions**
+
+**This code should not be used in production, or be adopted for usage. It should only be used to provide feedback to the Labs team.**
+
 [![Documentation](https://godoc.org/github.com/jenkins-x-labs/helmboot?status.svg)](https://pkg.go.dev/mod/github.com/jenkins-x-labs/helmboot)
 [![Go Report Card](https://goreportcard.com/badge/github.com/jenkins-x-labs/helmboot)](https://goreportcard.com/report/github.com/jenkins-x-labs/helmboot)
 [![Releases](https://img.shields.io/github/release-pre/jenkins-x-labs/helmboot.svg)](https://github.com/jenkins-x-labs/helmboot/releases)
