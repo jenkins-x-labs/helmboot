@@ -9,6 +9,7 @@ import (
 	v1 "github.com/jenkins-x/jx/pkg/apis/jenkins.io/v1"
 	"github.com/jenkins-x/jx/pkg/cloud"
 	"github.com/jenkins-x/jx/pkg/config"
+	"github.com/jenkins-x/jx/pkg/gits"
 	"github.com/jenkins-x/jx/pkg/jxfactory"
 	"github.com/jenkins-x/jx/pkg/kube"
 	"github.com/pkg/errors"
@@ -23,6 +24,7 @@ type KindResolver struct {
 	Kind    string
 	Dir     string
 	GitURL  string
+	Gitter  gits.Gitter
 
 	// outputs which can be useful
 	DevEnvironment *v1.Environment
@@ -62,6 +64,14 @@ func (r *KindResolver) GetFactory() jxfactory.Factory {
 		r.Factory = jxfactory.NewFactory()
 	}
 	return r.Factory
+}
+
+// Git the Gitter for accessing git
+func (r *KindResolver) Git() gits.Gitter {
+	if r.Gitter == nil {
+		r.Gitter = gits.NewGitCLI()
+	}
+	return r.Gitter
 }
 
 // VerifySecrets verifies that the secrets are valid
@@ -162,6 +172,14 @@ func (r *KindResolver) resolveRequirements(secretsYAML string) (*config.Requirem
 		return requirements, ns, err
 	}
 
+	if r.GitURL == "" {
+		// lets try get the git URL from the dir
+		r.GitURL, _, err = gits.GetGitInfoFromDirectory(r.Dir, r.Git())
+		if err != nil {
+			return nil, ns, errors.Wrapf(err, "failed to detect the git URL from the directory %s", r.Dir)
+		}
+	}
+
 	requirements, _, err := config.LoadRequirementsConfig(r.Dir)
 	if err != nil {
 		return requirements, ns, errors.Wrapf(err, "failed to requirements YAML file from %s", r.Dir)
@@ -232,11 +250,8 @@ func (r *KindResolver) LoadBootRunGitURLFromSecret() (string, error) {
 	}
 
 	var answer []byte
-	if s.Data != nil {
+	if s != nil && s.Data != nil {
 		answer = s.Data[key]
-	}
-	if len(answer) == 0 {
-		return "", errors.Errorf("no key %s in Secret %s in namespace %s. Please check you setup the boot secrets", key, name, ns)
 	}
 	return string(answer), nil
 }

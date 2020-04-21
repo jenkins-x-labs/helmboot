@@ -39,6 +39,7 @@ type CreateOptions struct {
 	Flags                 reqhelpers.RequirementFlags
 	InitialGitURL         string
 	Dir                   string
+	RequirementsFile      string
 	Cmd                   *cobra.Command
 	Args                  []string
 }
@@ -63,6 +64,7 @@ func NewCmdCreate() (*cobra.Command, *CreateOptions) {
 
 	cmd.Flags().StringVarP(&o.InitialGitURL, "initial-git-url", "", "", "The git URL to clone to fetch the initial set of files for a helm 3 / helmfile based git configuration if this command is not run inside a git clone or against a GitOps based cluster")
 	cmd.Flags().StringVarP(&o.Dir, "dir", "", "", "The directory used to create the development environment git repository inside. If not specified a temporary directory will be used")
+	cmd.Flags().StringVarP(&o.RequirementsFile, "requirements", "r", "", "The 'jx-requirements.yml' file to use in the created development git repository. This file may be created via terraform")
 
 	reqhelpers.AddRequirementsFlagsOptions(cmd, &o.Flags)
 	reqhelpers.AddRequirementsOptions(cmd, &o.Requirements)
@@ -82,7 +84,7 @@ func (o *CreateOptions) Run() error {
 		return err
 	}
 
-	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, &o.Requirements, &o.Flags)
+	err = reqhelpers.OverrideRequirements(o.Cmd, o.Args, dir, o.RequirementsFile, &o.Requirements, &o.Flags)
 	if err != nil {
 		return errors.Wrapf(err, "failed to override requirements in dir %s", dir)
 	}

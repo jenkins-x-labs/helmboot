@@ -40,7 +40,7 @@ func AddRequirementsOptions(cmd *cobra.Command, r *config.RequirementsConfig) {
 	cmd.Flags().StringVarP(&r.Cluster.Provider, "provider", "p", "", "configures the kubernetes provider.  Supported providers: "+cloud.KubernetesProviderOptions())
 	cmd.Flags().StringVarP(&r.Cluster.ProjectID, "project", "", "", "configures the Google Project ID")
 	cmd.Flags().StringVarP(&r.Cluster.Registry, "registry", "", "", "configures the host name of the container registry")
-	cmd.Flags().StringVarP(&r.Cluster.Region, "region", "r", "", "configures the cloud region")
+	cmd.Flags().StringVarP(&r.Cluster.Region, "region", "", "", "configures the cloud region")
 	cmd.Flags().StringVarP(&r.Cluster.Zone, "zone", "z", "", "configures the cloud zone")
 
 	cmd.Flags().StringVarP(&r.Cluster.ExternalDNSSAName, "extdns-sa", "", "", "configures the External DNS service account name")

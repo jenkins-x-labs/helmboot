@@ -27,6 +27,8 @@ const (
     token: dummytoken 
     email: me@foo.com
 `
+	/* #nosec */
+	expectedGitURLWithUserToken = "https://someuser:dummytoken@github.com/dummyowner/environment-dummycluster-dev.git"
 )
 
 func TestImportExportCommands(t *testing.T) {
@@ -89,6 +91,6 @@ func TestImportExportCommands(t *testing.T) {
 	gitURL, err := io.KindResolver.LoadBootRunGitURLFromSecret()
 	require.NoError(t, err, "failed to read the git URL from the secret")
 
-	assert.Equal(t, "https://someuser:dummytoken@github.com/dummyowner/environment-dummycluster-dev.git", gitURL, "loaded git URL from the boot run Secret")
+	assert.Equal(t, expectedGitURLWithUserToken, gitURL, "loaded git URL from the boot run Secret")
 
 }
